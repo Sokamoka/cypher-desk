@@ -20,6 +20,7 @@ Before you begin, ensure you have the following installed:
    - Verify installation: `node --version`
 
 2. **pnpm** (Package Manager)
+
    ```bash
    npm install -g pnpm
    # Verify installation
@@ -39,33 +40,39 @@ Before you begin, ensure you have the following installed:
 ## Project Structure
 
 ```
+├── app/                               # Nuxt srcDir (configured in nuxt.config.ts)
+│   ├── app.vue
+│   ├── layouts/
+│   │   └── default.vue
+│   └── pages/
+│       ├── index.vue                  # Home (redirects to /events)
+│       ├── events/
+│       │   ├── index.vue              # Events listing page
+│       │   └── [id].vue               # Event details & registration
+│       └── admin/
+│           ├── index.vue              # Admin dashboard
+│           └── events/
+│               └── create.vue         # Admin create event
 ├── server/
 │   ├── api/                           # Nuxt server endpoints
 │   │   ├── events/
-│   │   │   ├── index.get.ts          # GET /api/events (list all)
-│   │   │   ├── index.post.ts         # POST /api/events (create)
-│   │   │   └── [id].get.ts           # GET /api/events/[id] (single event)
+│   │   │   ├── index.get.ts           # GET /api/events (list all)
+│   │   │   ├── index.post.ts          # POST /api/events (create)
+│   │   │   └── [id].get.ts            # GET /api/events/[id] (single event)
 │   │   └── registrations/
-│   │       ├── index.get.ts          # GET /api/registrations (list all)
-│   │       ├── index.post.ts         # POST /api/registrations (create)
-│   │       ├── [id].put.ts           # PUT /api/registrations/[id] (update)
-│   │       └── [id].delete.ts        # DELETE /api/registrations/[id]
+│   │       ├── index.get.ts           # GET /api/registrations (list all)
+│   │       ├── index.post.ts          # POST /api/registrations (create)
+│   │       ├── [id].put.ts            # PUT /api/registrations/[id] (update)
+│   │       └── [id].delete.ts         # DELETE /api/registrations/[id]
 │   └── database/
-│       ├── schema.ts                 # Drizzle ORM SQLite schema
-│       └── migrations/               # Generated migrations
-├── pages/
-│   ├── index.vue                     # Home (redirects to /events)
-│   ├── events/
-│   │   ├── index.vue                 # Events listing page
-│   │   └── [id].vue                  # Event details & registration
-│   └── admin/
-│       ├── index.vue                 # Admin dashboard
-│       └── events/
-│           └── create.vue            # Admin create event
+│       └── schema.ts                  # Drizzle ORM SQLite schema
 ├── utils/
 │   └── schemas.ts                    # Valibot validation schemas
-├── drizzle.config.ts                 # Drizzle Kit configuration
-├── wrangler.toml                     # Wrangler configuration
+├── drizzle.config.ts                  # Drizzle Kit configuration
+├── nuxt.config.ts                     # Nuxt configuration
+├── tsconfig.json                      # TypeScript config (extends .nuxt/tsconfig.json)
+├── package.json
+├── pnpm-lock.yaml
 └── README.md                         # This file
 ```
 
@@ -85,6 +92,7 @@ pnpm install
 ```
 
 This will install all dependencies including:
+
 - Nuxt 4 and Vue 3
 - Drizzle ORM
 - Valibot
@@ -205,6 +213,7 @@ pnpm dev
 ```
 
 This starts:
+
 - Nuxt dev server (default: http://localhost:3000)
 - Hot module replacement (HMR)
 - Cloudflare D1 local bindings
@@ -242,6 +251,7 @@ pnpm build
 ```
 
 This generates:
+
 - `.output/` directory with production-ready code
 - Optimized bundles
 - Server handlers for Cloudflare
@@ -272,6 +282,7 @@ git push origin main
 ### 2. Configure Build Settings
 
 In Cloudflare Pages dashboard:
+
 - **Build command:** `pnpm run build`
 - **Build output directory:** `.output/public`
 - **Node version:** 18+
@@ -279,6 +290,7 @@ In Cloudflare Pages dashboard:
 ### 3. Set Environment Variables (if needed)
 
 In Pages settings, add environment variables:
+
 - D1 databases are automatically bound via `wrangler.toml`
 
 ### 4. Deploy
@@ -351,6 +363,7 @@ CREATE TABLE users (
 ### Public Endpoints
 
 #### List All Events
+
 ```
 GET /api/events
 
@@ -375,6 +388,7 @@ Response:
 ```
 
 #### Get Single Event
+
 ```
 GET /api/events/{id}
 
@@ -400,6 +414,7 @@ Response:
 ```
 
 #### Create Registration
+
 ```
 POST /api/registrations
 
@@ -422,6 +437,7 @@ Response:
 ### Admin Endpoints
 
 #### List All Registrations
+
 ```
 GET /api/registrations
 
@@ -443,6 +459,7 @@ Response:
 ```
 
 #### Create Event
+
 ```
 POST /api/events
 
@@ -468,6 +485,7 @@ Response:
 ```
 
 #### Update Registration
+
 ```
 PUT /api/registrations/{id}
 
@@ -486,6 +504,7 @@ Response:
 ```
 
 #### Delete Registration
+
 ```
 DELETE /api/registrations/{id}
 
@@ -532,6 +551,7 @@ pnpm drizzle-kit validate
 ## Language & Naming Conventions
 
 All code strictly follows English conventions:
+
 - Variable names, function names, file names in **English**
 - Database column names in **English**
 - Code comments in **English**
@@ -566,6 +586,7 @@ This project is licensed under the MIT License.
 ## Support
 
 For issues or questions:
+
 1. Check existing [GitHub Issues](https://github.com/Sokamoka/cypher-desk/issues)
 2. Review the [Documentation Standards](.github/copilot-instructions.md)
 3. Create a new issue with detailed description
