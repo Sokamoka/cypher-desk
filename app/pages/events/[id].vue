@@ -4,11 +4,7 @@
       <!-- Back Button -->
       <div class="mb-6">
         <NuxtLink to="/events">
-          <UButton
-            icon="heroicons:arrow-left"
-            variant="soft"
-            color="gray"
-          >
+          <UButton icon="heroicons:arrow-left" variant="soft" color="gray">
             Back to Events
           </UButton>
         </NuxtLink>
@@ -22,12 +18,20 @@
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p class="text-red-700">Failed to load event. Please try again later.</p>
+      <div
+        v-else-if="error"
+        class="bg-red-50 border border-red-200 rounded-lg p-4"
+      >
+        <p class="text-red-700">
+          Failed to load event. Please try again later.
+        </p>
       </div>
 
       <!-- Not Found -->
-      <div v-else-if="!data?.event" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div
+        v-else-if="!data?.event"
+        class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"
+      >
         <p class="text-yellow-700">Event not found.</p>
       </div>
 
@@ -73,16 +77,21 @@
                 <h2 class="text-lg font-semibold">About this event</h2>
               </template>
               <p class="text-gray-700 whitespace-pre-wrap">
-                {{ data.event.description || 'No description provided.' }}
+                {{ data.event.description || "No description provided." }}
               </p>
             </UCard>
 
             <!-- Participants by Category -->
-            <div v-if="Object.keys(data.event.participantsByCategory).length > 0">
-              <h2 class="text-lg font-semibold mb-4">Registered Participants</h2>
+            <div
+              v-if="Object.keys(data.event.participantsByCategory).length > 0"
+            >
+              <h2 class="text-lg font-semibold mb-4">
+                Registered Participants
+              </h2>
               <div class="space-y-4">
                 <UCard
-                  v-for="(categoryGroup, categoryId) in data.event.participantsByCategory"
+                  v-for="(categoryGroup, categoryId) in data.event
+                    .participantsByCategory"
                   :key="categoryId"
                 >
                   <template #header>
@@ -153,7 +162,11 @@
                   </UFormGroup>
 
                   <!-- Category Selection -->
-                  <UFormGroup label="Select Category" name="categoryId" required>
+                  <UFormGroup
+                    label="Select Category"
+                    name="categoryId"
+                    required
+                  >
                     <USelect
                       v-model.number="formState.categoryId"
                       :options="categoryOptions"
@@ -164,10 +177,7 @@
                   </UFormGroup>
 
                   <!-- Event ID (Hidden) -->
-                  <input
-                    v-model="formState.eventId"
-                    type="hidden"
-                  />
+                  <input v-model="formState.eventId" type="hidden" />
 
                   <!-- Loading & Error States -->
                   <div v-if="submitting" class="text-sm text-gray-600">
@@ -211,25 +221,30 @@
 </template>
 
 <script setup lang="ts">
-import { v } from 'valibot';
-import { CreateRegistrationSchema, type CreateRegistration } from '~/utils/schemas';
+import { v } from "valibot";
+import {
+  CreateRegistrationSchema,
+  type CreateRegistration,
+} from "~~/utils/schemas";
 
 definePageMeta({
-  layout: 'default',
+  layout: "default",
 });
 
 const route = useRoute();
 const eventId = route.params.id as string;
 
 // Fetch event details
-const { data, pending, error, refresh } = await useFetch(`/api/events/${eventId}`);
+const { data, pending, error, refresh } = await useFetch(
+  `/api/events/${eventId}`,
+);
 
 // Form state
 const formState = reactive<CreateRegistration>({
   eventId: eventId,
   categoryId: 0,
-  applicantName: '',
-  applicantEmail: '',
+  applicantName: "",
+  applicantEmail: "",
 });
 
 // Category options
@@ -249,23 +264,23 @@ const submitSuccess = ref(false);
 // Helper to format event date
 const formatDate = (dateString: string | Date) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
 // Helper to format registration date
 const formatCreatedDate = (dateString: string | Date) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: '2-digit',
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "2-digit",
   });
 };
 
@@ -280,16 +295,16 @@ const onSubmit = async () => {
     const validatedData = v.parse(CreateRegistrationSchema, formState);
 
     // Submit registration
-    const response = await $fetch('/api/registrations', {
-      method: 'POST',
+    const response = await $fetch("/api/registrations", {
+      method: "POST",
       body: validatedData,
     });
 
     submitSuccess.value = true;
 
     // Reset form
-    formState.applicantName = '';
-    formState.applicantEmail = '';
+    formState.applicantName = "";
+    formState.applicantEmail = "";
     formState.categoryId = 0;
 
     // Refresh event data to show new registration
@@ -297,11 +312,12 @@ const onSubmit = async () => {
       refresh();
     }, 2000);
   } catch (err) {
-    if (typeof err === 'object' && err !== null && 'data' in err) {
+    if (typeof err === "object" && err !== null && "data" in err) {
       const errorData = err.data as any;
-      submitError.value = errorData?.message || 'Registration failed';
+      submitError.value = errorData?.message || "Registration failed";
     } else {
-      submitError.value = 'An error occurred during registration. Please try again.';
+      submitError.value =
+        "An error occurred during registration. Please try again.";
     }
   } finally {
     submitting.value = false;

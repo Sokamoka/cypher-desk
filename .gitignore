@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Nuxt build artifacts
+.nuxt/
+.output/
+
+# Optional static output
+dist/
+
+# Wrangler / Cloudflare local state
+.wrangler/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor artifacts
+.DS_Store
+.vscode/
+.idea/

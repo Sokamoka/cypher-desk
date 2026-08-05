@@ -1,12 +1,8 @@
-import { drizzle } from 'drizzle-orm/cloudflare-d1';
-import { eq, and } from 'drizzle-orm';
-import { v } from 'valibot';
-import {
-  registrations,
-  events,
-  categories,
-} from '~/server/database/schema';
-import { CreateRegistrationSchema } from '~/utils/schemas';
+import { drizzle } from "drizzle-orm/cloudflare-d1";
+import { eq, and } from "drizzle-orm";
+import { v } from "valibot";
+import { registrations, events, categories } from "~/server/database/schema";
+import { CreateRegistrationSchema } from "~~/utils/schemas";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -29,7 +25,7 @@ export default defineEventHandler(async (event) => {
         event,
         createError({
           statusCode: 400,
-          message: 'Event not found',
+          message: "Event not found",
         }),
       );
     }
@@ -51,25 +47,23 @@ export default defineEventHandler(async (event) => {
         event,
         createError({
           statusCode: 400,
-          message: 'Category not found or does not belong to this event',
+          message: "Category not found or does not belong to this event",
         }),
       );
     }
 
     // Create registration
-    const result = await db
-      .insert(registrations)
-      .values({
-        eventId: validatedData.eventId,
-        categoryId: validatedData.categoryId,
-        applicantName: validatedData.applicantName,
-        applicantEmail: validatedData.applicantEmail,
-      });
+    const result = await db.insert(registrations).values({
+      eventId: validatedData.eventId,
+      categoryId: validatedData.categoryId,
+      applicantName: validatedData.applicantName,
+      applicantEmail: validatedData.applicantEmail,
+    });
 
     return {
       success: true,
       registrationId: result.lastID,
-      message: 'Registration submitted successfully',
+      message: "Registration submitted successfully",
     };
   } catch (error) {
     if (error instanceof v.ValiError) {
@@ -77,18 +71,18 @@ export default defineEventHandler(async (event) => {
         event,
         createError({
           statusCode: 400,
-          message: 'Validation failed',
+          message: "Validation failed",
           data: error.issues,
         }),
       );
     }
 
-    console.error('Registration error:', error);
+    console.error("Registration error:", error);
     return sendError(
       event,
       createError({
         statusCode: 500,
-        message: 'Failed to create registration',
+        message: "Failed to create registration",
       }),
     );
   }

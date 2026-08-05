@@ -4,11 +4,7 @@
       <!-- Back Button -->
       <div class="mb-6">
         <NuxtLink to="/admin">
-          <UButton
-            icon="heroicons:arrow-left"
-            variant="soft"
-            color="gray"
-          >
+          <UButton icon="heroicons:arrow-left" variant="soft" color="gray">
             Back to Admin
           </UButton>
         </NuxtLink>
@@ -44,10 +40,7 @@
 
             <!-- Date -->
             <UFormGroup label="Event Date & Time" name="eventDate" required>
-              <UInput
-                v-model="formState.eventDate"
-                type="datetime-local"
-              />
+              <UInput v-model="formState.eventDate" type="datetime-local" />
             </UFormGroup>
 
             <!-- Location -->
@@ -102,7 +95,9 @@
                       v-model.number="category.maxCapacity"
                       type="number"
                       placeholder="Leave empty for unlimited"
-                      @input="updateCategoryCapacity(index, $event.target.value)"
+                      @input="
+                        updateCategoryCapacity(index, $event.target.value)
+                      "
                     />
                   </UFormGroup>
 
@@ -121,8 +116,14 @@
                 </div>
               </div>
 
-              <div v-if="categories.length > 0" class="mt-4 text-sm text-gray-600">
-                {{ categories.length }} categor{{ categories.length !== 1 ? 'ies' : 'y' }} added
+              <div
+                v-if="categories.length > 0"
+                class="mt-4 text-sm text-gray-600"
+              >
+                {{ categories.length }} categor{{
+                  categories.length !== 1 ? "ies" : "y"
+                }}
+                added
               </div>
             </div>
 
@@ -157,11 +158,7 @@
                 Create Event
               </UButton>
               <NuxtLink to="/admin">
-                <UButton
-                  type="button"
-                  color="gray"
-                  variant="soft"
-                >
+                <UButton type="button" color="gray" variant="soft">
                   Cancel
                 </UButton>
               </NuxtLink>
@@ -174,19 +171,19 @@
 </template>
 
 <script setup lang="ts">
-import { v } from 'valibot';
-import { CreateEventSchema, type CategoryInput } from '~/utils/schemas';
+import { v } from "valibot";
+import { CreateEventSchema, type CategoryInput } from "~~/utils/schemas";
 
 definePageMeta({
-  layout: 'default',
+  layout: "default",
 });
 
 // Form state
 const formState = reactive({
-  title: '',
-  description: '',
-  eventDate: '',
-  location: '',
+  title: "",
+  description: "",
+  eventDate: "",
+  location: "",
   categories: [] as CategoryInput[],
 });
 
@@ -197,7 +194,7 @@ const submitSuccess = ref(false);
 
 // Add a category
 const addCategory = () => {
-  categories.value.push({ name: '', maxCapacity: undefined });
+  categories.value.push({ name: "", maxCapacity: undefined });
 };
 
 // Remove a category
@@ -225,15 +222,17 @@ const onSubmit = async () => {
 
     // Validate categories
     if (categories.value.length === 0) {
-      submitError.value = 'Please add at least one category';
+      submitError.value = "Please add at least one category";
       submitting.value = false;
       return;
     }
 
     // Validate category names
-    const hasEmptyNames = categories.value.some((cat) => !cat.name || cat.name.trim().length === 0);
+    const hasEmptyNames = categories.value.some(
+      (cat) => !cat.name || cat.name.trim().length === 0,
+    );
     if (hasEmptyNames) {
-      submitError.value = 'All categories must have a name';
+      submitError.value = "All categories must have a name";
       submitting.value = false;
       return;
     }
@@ -254,8 +253,8 @@ const onSubmit = async () => {
     const validatedData = v.parse(CreateEventSchema, eventData);
 
     // Submit to API
-    await $fetch('/api/events', {
-      method: 'POST',
+    await $fetch("/api/events", {
+      method: "POST",
       body: validatedData,
     });
 
@@ -263,16 +262,16 @@ const onSubmit = async () => {
 
     // Redirect after success
     setTimeout(() => {
-      navigateTo('/admin');
+      navigateTo("/admin");
     }, 1500);
   } catch (err) {
     if (err instanceof v.ValiError) {
-      submitError.value = 'Validation failed: Please check your input';
-    } else if (typeof err === 'object' && err !== null && 'data' in err) {
+      submitError.value = "Validation failed: Please check your input";
+    } else if (typeof err === "object" && err !== null && "data" in err) {
       const errorData = err.data as any;
-      submitError.value = errorData?.message || 'Failed to create event';
+      submitError.value = errorData?.message || "Failed to create event";
     } else {
-      submitError.value = 'An error occurred. Please try again.';
+      submitError.value = "An error occurred. Please try again.";
     }
   } finally {
     submitting.value = false;

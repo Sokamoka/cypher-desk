@@ -1,7 +1,7 @@
-import { drizzle } from 'drizzle-orm/cloudflare-d1';
-import { v } from 'valibot';
-import { events, categories } from '~/server/database/schema';
-import { CreateEventSchema } from '~/utils/schemas';
+import { drizzle } from "drizzle-orm/cloudflare-d1";
+import { v } from "valibot";
+import { events, categories } from "~/server/database/schema";
+import { CreateEventSchema } from "~~/utils/schemas";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
       success: true,
       eventId: result.eventId,
       categoryCount: result.categoryIds.length,
-      message: 'Event created successfully',
+      message: "Event created successfully",
     };
   } catch (error) {
     if (error instanceof v.ValiError) {
@@ -53,18 +53,18 @@ export default defineEventHandler(async (event) => {
         event,
         createError({
           statusCode: 400,
-          message: 'Validation failed',
+          message: "Validation failed",
           data: error.issues,
         }),
       );
     }
 
-    console.error('Event creation error:', error);
+    console.error("Event creation error:", error);
     return sendError(
       event,
       createError({
         statusCode: 500,
-        message: 'Failed to create event',
+        message: "Failed to create event",
       }),
     );
   }
