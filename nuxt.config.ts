@@ -4,7 +4,7 @@ export default defineNuxtConfig({
   devServer: {
     port: 3456,
   },
-  modules: ["@nuxt/ui"],
+  modules: ["@nuxt/ui", "motion-v/nuxt"],
   css: ["~~/assets/css/main.css"],
   nitro: {
     preset: "cloudflare_pages",

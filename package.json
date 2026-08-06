@@ -15,7 +15,9 @@
   "dependencies": {
     "@nuxt/ui": "^4.10.0",
     "drizzle-orm": "^0.45.2",
+    "motion-v": "^2.3.0",
     "nuxt": "^4.5.2",
+    "shaders": "^3.0.448",
     "valibot": "^1.4.2",
     "vue-tsc": "^3.3.9"
   },
