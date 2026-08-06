@@ -16,35 +16,30 @@ export default defineEventHandler(async (event) => {
     // Generate event ID (UUID-like for this example)
     const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create event and categories in a transaction
-    const result = await db.transaction(async (tx) => {
-      // Insert event
-      await tx.insert(events).values({
-        id: eventId,
-        title: validatedData.title,
-        description: validatedData.description,
-        eventDate: validatedData.eventDate,
-        location: validatedData.location,
-      });
-
-      // Insert categories for this event
-      const categoryIds: number[] = [];
-      for (const cat of validatedData.categories) {
-        const catResult = await tx.insert(categories).values({
-          eventId: eventId,
-          name: cat.name,
-          maxCapacity: cat.maxCapacity,
-        });
-        categoryIds.push(catResult.lastID as number);
-      }
-
-      return { eventId, categoryIds };
+    // Local D1 runtime does not allow SQL BEGIN/SAVEPOINT from Drizzle transaction().
+    // Use sequential inserts for compatibility.
+    await db.insert(events).values({
+      id: eventId,
+      title: validatedData.title,
+      description: validatedData.description,
+      eventDate: validatedData.eventDate,
+      location: validatedData.location,
     });
+
+    let createdCategoryCount = 0;
+    for (const cat of validatedData.categories) {
+      await db.insert(categories).values({
+        eventId: eventId,
+        name: cat.name,
+        maxCapacity: cat.maxCapacity,
+      });
+      createdCategoryCount += 1;
+    }
 
     return {
       success: true,
-      eventId: result.eventId,
-      categoryCount: result.categoryIds.length,
+      eventId,
+      categoryCount: createdCategoryCount,
       message: "Event created successfully",
     };
   } catch (error) {

@@ -144,37 +144,35 @@
               >
                 <div class="space-y-4">
                   <!-- Applicant Name -->
-                  <UFormGroup label="Your Name" name="applicantName" required>
+                  <UFormField label="Your Name" name="applicantName" required>
                     <UInput
                       v-model="formState.applicantName"
                       type="text"
                       placeholder="Enter your full name"
                     />
-                  </UFormGroup>
+                  </UFormField>
 
                   <!-- Applicant Email -->
-                  <UFormGroup label="Your Email" name="applicantEmail" required>
+                  <UFormField label="Your Email" name="applicantEmail" required>
                     <UInput
                       v-model="formState.applicantEmail"
                       type="email"
                       placeholder="Enter your email address"
                     />
-                  </UFormGroup>
+                  </UFormField>
 
                   <!-- Category Selection -->
-                  <UFormGroup
+                  <UFormField
                     label="Select Category"
                     name="categoryId"
                     required
                   >
                     <USelect
-                      v-model.number="formState.categoryId"
-                      :options="categoryOptions"
-                      option-attribute="label"
-                      value-attribute="value"
+                      v-model="formState.categoryId"
+                      :items="categoryOptions"
                       placeholder="Choose a category"
                     />
-                  </UFormGroup>
+                  </UFormField>
 
                   <!-- Event ID (Hidden) -->
                   <input v-model="formState.eventId" type="hidden" />
@@ -206,8 +204,8 @@
                     block
                     :loading="submitting"
                     color="info"
+                    icon="heroicons:check"
                   >
-                    <Icon name="heroicons:check" class="w-4 h-4 mr-2" />
                     Register Now
                   </UButton>
                 </div>
@@ -227,6 +225,10 @@ import {
   type CreateRegistration,
 } from "~~/utils/schemas";
 
+type CreateRegistrationFormState = Omit<CreateRegistration, "categoryId"> & {
+  categoryId: number | undefined;
+};
+
 definePageMeta({
   layout: "default",
 });
@@ -240,9 +242,9 @@ const { data, pending, error, refresh } = await useFetch(
 );
 
 // Form state
-const formState = reactive<CreateRegistration>({
+const formState = reactive<CreateRegistrationFormState>({
   eventId: eventId,
-  categoryId: 0,
+  categoryId: undefined,
   applicantName: "",
   applicantEmail: "",
 });
@@ -291,11 +293,23 @@ const onSubmit = async () => {
     submitError.value = null;
     submitSuccess.value = false;
 
+    if (typeof formState.categoryId !== "number") {
+      submitError.value = "Please select a category.";
+      return;
+    }
+
+    const payload: CreateRegistration = {
+      eventId: formState.eventId,
+      categoryId: formState.categoryId,
+      applicantName: formState.applicantName,
+      applicantEmail: formState.applicantEmail,
+    };
+
     // Validate state
-    const validatedData = v.parse(CreateRegistrationSchema, formState);
+    const validatedData = v.parse(CreateRegistrationSchema, payload);
 
     // Submit registration
-    const response = await $fetch("/api/registrations", {
+    await $fetch("/api/registrations", {
       method: "POST",
       body: validatedData,
     });
@@ -305,7 +319,7 @@ const onSubmit = async () => {
     // Reset form
     formState.applicantName = "";
     formState.applicantEmail = "";
-    formState.categoryId = 0;
+    formState.categoryId = undefined;
 
     // Refresh event data to show new registration
     setTimeout(() => {

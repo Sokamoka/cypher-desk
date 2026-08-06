@@ -22,34 +22,34 @@
         >
           <div class="space-y-6">
             <!-- Title -->
-            <UFormGroup label="Event Title" name="title" required>
+            <UFormField label="Event Title" name="title" required>
               <UInput
                 v-model="formState.title"
                 placeholder="Enter event title"
               />
-            </UFormGroup>
+            </UFormField>
 
             <!-- Description -->
-            <UFormGroup label="Description" name="description">
+            <UFormField label="Description" name="description">
               <UTextarea
                 v-model="formState.description"
                 placeholder="Enter event description"
                 :rows="5"
               />
-            </UFormGroup>
+            </UFormField>
 
             <!-- Date -->
-            <UFormGroup label="Event Date & Time" name="eventDate" required>
+            <UFormField label="Event Date & Time" name="eventDate" required>
               <UInput v-model="formState.eventDate" type="datetime-local" />
-            </UFormGroup>
+            </UFormField>
 
             <!-- Location -->
-            <UFormGroup label="Location" name="location">
+            <UFormField label="Location" name="location">
               <UInput
                 v-model="formState.location"
                 placeholder="Enter event location"
               />
-            </UFormGroup>
+            </UFormField>
 
             <!-- Dynamic Categories -->
             <div class="border-t pt-6">
@@ -82,15 +82,15 @@
                   :key="index"
                   class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3"
                 >
-                  <UFormGroup :label="`Category ${index + 1} Name`" required>
+                  <UFormField :label="`Category ${index + 1} Name`" required>
                     <UInput
                       v-model="category.name"
                       placeholder="e.g., Girl, 1x1 Open"
                       @input="updateCategoryName(index, $event.target.value)"
                     />
-                  </UFormGroup>
+                  </UFormField>
 
-                  <UFormGroup :label="`Category ${index + 1} Max Capacity`">
+                  <UFormField :label="`Category ${index + 1} Max Capacity`">
                     <UInput
                       v-model.number="category.maxCapacity"
                       type="number"
@@ -99,7 +99,7 @@
                         updateCategoryCapacity(index, $event.target.value)
                       "
                     />
-                  </UFormGroup>
+                  </UFormField>
 
                   <div class="flex justify-end">
                     <UButton
@@ -153,8 +153,8 @@
                 :loading="submitting"
                 color="info"
                 class="flex-1"
+                icon="heroicons:check"
               >
-                <Icon name="heroicons:check" class="w-4 h-4 mr-2" />
                 Create Event
               </UButton>
               <NuxtLink to="/admin">
@@ -187,7 +187,7 @@ const formState = reactive({
   categories: [] as CategoryInput[],
 });
 
-const categories = ref<CategoryInput[]>([]);
+const categories = toRef(formState, "categories");
 const submitting = ref(false);
 const submitError = ref<string | null>(null);
 const submitSuccess = ref(false);
@@ -251,7 +251,7 @@ const onSubmit = async () => {
     const eventData = {
       title: formState.title,
       description: formState.description || undefined,
-      eventDate: new Date(formState.eventDate).toISOString(),
+      eventDate: formState.eventDate,
       location: formState.location || undefined,
       categories: categories.value.map((cat) => ({
         name: cat.name.trim(),
@@ -276,7 +276,13 @@ const onSubmit = async () => {
     }, 1500);
   } catch (err) {
     if (err instanceof v.ValiError) {
-      submitError.value = "Validation failed: Please check your input";
+      const firstIssue = err.issues[0];
+      const issuePath = firstIssue?.path
+        ?.map((item: { key: unknown }) => String(item.key))
+        .join(".");
+      submitError.value = issuePath
+        ? `Validation failed at ${issuePath}: ${firstIssue.message}`
+        : `Validation failed: ${firstIssue?.message || "Please check your input"}`;
     } else if (typeof err === "object" && err !== null && "data" in err) {
       const errorData = err.data as any;
       submitError.value = errorData?.message || "Failed to create event";

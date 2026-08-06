@@ -115,32 +115,32 @@
           </template>
 
           <div v-if="selectedRegistration" class="space-y-4">
-            <UFormGroup label="Event ID" required>
+            <UFormField label="Event ID" required>
               <div class="text-gray-700 font-medium">
                 {{ selectedRegistration.eventId }}
               </div>
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Applicant Name" required>
+            <UFormField label="Applicant Name" required>
               <UInput
                 v-model="editFormState.applicantName"
                 placeholder="Enter applicant name"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Category ID" required>
+            <UFormField label="Category ID" required>
               <UInput
                 v-model.number="editFormState.categoryId"
                 type="number"
                 placeholder="Enter category ID"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Email" disabled>
+            <UFormField label="Email" disabled>
               <div class="text-gray-600 text-sm">
                 {{ selectedRegistration.applicantEmail }}
               </div>
-            </UFormGroup>
+            </UFormField>
           </div>
 
           <template #footer>
