@@ -1,21 +1,17 @@
-import { drizzle } from 'drizzle-orm/cloudflare-d1';
-import { eq } from 'drizzle-orm';
-import {
-  events,
-  categories,
-  registrations,
-} from '~/server/database/schema';
+import { drizzle } from "drizzle-orm/d1";
+import { eq } from "drizzle-orm";
+import { events, categories, registrations } from "~~/server/database/schema";
 
 export default defineEventHandler(async (event) => {
   try {
-    const id = getRouterParam(event, 'id');
+    const id = getRouterParam(event, "id");
 
     if (!id) {
       return sendError(
         event,
         createError({
           statusCode: 400,
-          message: 'Event ID is required',
+          message: "Event ID is required",
         }),
       );
     }
@@ -34,7 +30,7 @@ export default defineEventHandler(async (event) => {
         event,
         createError({
           statusCode: 404,
-          message: 'Event not found',
+          message: "Event not found",
         }),
       );
     }
@@ -99,12 +95,12 @@ export default defineEventHandler(async (event) => {
       },
     };
   } catch (error) {
-    console.error('Error fetching event details:', error);
+    console.error("Error fetching event details:", error);
     return sendError(
       event,
       createError({
         statusCode: 500,
-        message: 'Failed to fetch event details',
+        message: "Failed to fetch event details",
       }),
     );
   }

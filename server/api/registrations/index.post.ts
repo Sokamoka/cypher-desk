@@ -1,7 +1,7 @@
-import { drizzle } from "drizzle-orm/cloudflare-d1";
+import { drizzle } from "drizzle-orm/d1";
 import { eq, and } from "drizzle-orm";
-import { v } from "valibot";
-import { registrations, events, categories } from "~/server/database/schema";
+import * as v from "valibot";
+import { registrations, events, categories } from "~~/server/database/schema";
 import { CreateRegistrationSchema } from "~~/utils/schemas";
 
 export default defineEventHandler(async (event) => {

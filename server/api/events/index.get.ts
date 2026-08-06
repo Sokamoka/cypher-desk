@@ -1,5 +1,5 @@
-import { drizzle } from 'drizzle-orm/cloudflare-d1';
-import { events, categories } from '~/server/database/schema';
+import { drizzle } from "drizzle-orm/d1";
+import { events, categories } from "~~/server/database/schema";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -34,12 +34,12 @@ export default defineEventHandler(async (event) => {
       total: enrichedEvents.length,
     };
   } catch (error) {
-    console.error('Error fetching events:', error);
+    console.error("Error fetching events:", error);
     return sendError(
       event,
       createError({
         statusCode: 500,
-        message: 'Failed to fetch events',
+        message: "Failed to fetch events",
       }),
     );
   }

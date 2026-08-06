@@ -1,7 +1,11 @@
 export default defineNuxtConfig({
   compatibilityDate: "2026-08-05",
   srcDir: "app/",
+  devServer: {
+    port: 3456,
+  },
   modules: ["@nuxt/ui"],
+  css: ["~~/assets/css/main.css"],
   nitro: {
     preset: "cloudflare_pages",
   },

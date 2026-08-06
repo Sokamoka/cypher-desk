@@ -14,14 +14,20 @@
         <USkeleton class="h-32 w-full" />
       </div>
 
-      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div
+        v-else-if="error"
+        class="bg-red-50 border border-red-200 rounded-lg p-4"
+      >
         <p class="text-red-700">
           Failed to load events. Please try again later.
         </p>
       </div>
 
       <div v-else class="grid gap-6">
-        <div v-if="!data?.events || data.events.length === 0" class="text-center py-12">
+        <div
+          v-if="!data?.events || data.events.length === 0"
+          class="text-center py-12"
+        >
           <p class="text-gray-600">No events available at this time.</p>
         </div>
 
@@ -43,7 +49,7 @@
                   <UBadge
                     v-for="category in event.categories"
                     :key="category.id"
-                    color="blue"
+                    color="info"
                     variant="subtle"
                   >
                     {{ category.name }}
@@ -54,10 +60,12 @@
 
             <div class="space-y-3">
               <p class="text-gray-600 line-clamp-2">
-                {{ event.description || 'No description' }}
+                {{ event.description || "No description" }}
               </p>
 
-              <div class="flex flex-col sm:flex-row gap-4 text-sm text-gray-500">
+              <div
+                class="flex flex-col sm:flex-row gap-4 text-sm text-gray-500"
+              >
                 <div class="flex items-center gap-2">
                   <Icon name="heroicons:calendar" class="w-4 h-4" />
                   {{ formatDate(event.eventDate) }}
@@ -77,7 +85,7 @@
                 <UButton
                   icon="heroicons:arrow-right"
                   trailing
-                  color="blue"
+                  color="info"
                   variant="soft"
                 >
                   View Event
@@ -93,20 +101,20 @@
 
 <script setup lang="ts">
 definePageMeta({
-  layout: 'default',
+  layout: "default",
 });
 
-const { data, pending, error } = await useFetch('/api/events');
+const { data, pending, error } = await useFetch("/api/events");
 
 const formatDate = (dateString: string | Date) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 </script>

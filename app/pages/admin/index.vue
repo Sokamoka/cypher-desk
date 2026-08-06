@@ -9,19 +9,10 @@
         </div>
         <div class="flex gap-3">
           <NuxtLink to="/admin/events/create">
-            <UButton
-              icon="heroicons:plus"
-              color="blue"
-            >
-              Create Event
-            </UButton>
+            <UButton icon="heroicons:plus" color="info"> Create Event </UButton>
           </NuxtLink>
           <NuxtLink to="/">
-            <UButton
-              icon="heroicons:arrow-left"
-              variant="soft"
-              color="gray"
-            >
+            <UButton icon="heroicons:arrow-left" variant="soft" color="neutral">
               Back to Events
             </UButton>
           </NuxtLink>
@@ -35,8 +26,13 @@
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p class="text-red-700">Failed to load registrations. Please try again later.</p>
+      <div
+        v-else-if="error"
+        class="bg-red-50 border border-red-200 rounded-lg p-4"
+      >
+        <p class="text-red-700">
+          Failed to load registrations. Please try again later.
+        </p>
       </div>
 
       <!-- Registrations Table -->
@@ -44,7 +40,7 @@
         <template #header>
           <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold">All Registrations</h2>
-            <UBadge color="blue" variant="soft">
+            <UBadge color="info" variant="soft">
               {{ registrationsData.length }} registrations
             </UBadge>
           </div>
@@ -56,49 +52,55 @@
 
         <UTable
           v-else
-          :rows="registrationsData"
+          :data="registrationsData"
           :columns="columns"
           :loading="pending"
         >
-          <template #eventId-data="{ row }">
-            <span class="font-medium text-gray-900">{{ row.eventId }}</span>
+          <template #eventId-cell="{ row }">
+            <span class="font-medium text-gray-900">{{
+              row.original.eventId
+            }}</span>
           </template>
 
-          <template #applicantName-data="{ row }">
-            <span class="font-medium text-gray-900">{{ row.applicantName }}</span>
+          <template #applicantName-cell="{ row }">
+            <span class="font-medium text-gray-900">{{
+              row.original.applicantName
+            }}</span>
           </template>
 
-          <template #applicantEmail-data="{ row }">
-            <span class="text-sm text-gray-600">{{ row.applicantEmail }}</span>
+          <template #applicantEmail-cell="{ row }">
+            <span class="text-sm text-gray-600">{{
+              row.original.applicantEmail
+            }}</span>
           </template>
 
-          <template #categoryId-data="{ row }">
-            <UBadge color="blue" variant="subtle">
-              Category #{{ row.categoryId }}
+          <template #categoryId-cell="{ row }">
+            <UBadge color="info" variant="subtle">
+              Category #{{ row.original.categoryId }}
             </UBadge>
           </template>
 
-          <template #createdAt-data="{ row }">
+          <template #createdAt-cell="{ row }">
             <span class="text-sm text-gray-600">
-              {{ formatDate(row.createdAt) }}
+              {{ formatDate(row.original.createdAt) }}
             </span>
           </template>
 
-          <template #actions-data="{ row }">
+          <template #actions-cell="{ row }">
             <div class="flex items-center gap-2">
               <UButton
                 icon="heroicons:pencil"
                 size="xs"
-                color="blue"
+                color="info"
                 variant="ghost"
-                @click="openEditModal(row)"
+                @click="openEditModal(row.original)"
               />
               <UButton
                 icon="heroicons:trash"
                 size="xs"
-                color="red"
+                color="error"
                 variant="ghost"
-                @click="openDeleteConfirm(row)"
+                @click="openDeleteConfirm(row.original)"
               />
             </div>
           </template>
@@ -107,14 +109,7 @@
 
       <!-- Edit Modal -->
       <UModal v-model="isEditModalOpen" title="Edit Registration">
-        <UCard
-          :ui="{
-            base: '',
-            ring: '',
-            divide: 'divide-y divide-gray-100 dark:divide-gray-800',
-            body: { base: 'grow' },
-          }"
-        >
+        <UCard>
           <template #header>
             <h2 class="text-lg font-semibold">Edit Registration</h2>
           </template>
@@ -152,15 +147,12 @@
             <div class="flex gap-3 justify-end">
               <UButton
                 variant="soft"
-                color="gray"
+                color="neutral"
                 @click="isEditModalOpen = false"
               >
                 Cancel
               </UButton>
-              <UButton
-                :loading="editSubmitting"
-                @click="submitEdit"
-              >
+              <UButton :loading="editSubmitting" @click="submitEdit">
                 Save Changes
               </UButton>
             </div>
@@ -170,14 +162,7 @@
 
       <!-- Delete Confirmation Dialog -->
       <UModal v-model="isDeleteConfirmOpen">
-        <UCard
-          :ui="{
-            base: '',
-            ring: '',
-            divide: 'divide-y divide-gray-100 dark:divide-gray-800',
-            body: { base: 'grow' },
-          }"
-        >
+        <UCard>
           <template #header>
             <h2 class="text-lg font-semibold">Delete Registration</h2>
           </template>
@@ -187,25 +172,28 @@
               Are you sure you want to delete this registration?
             </p>
             <div v-if="selectedRegistration" class="bg-gray-50 p-3 rounded">
-              <p class="text-sm"><strong>Name:</strong> {{ selectedRegistration.applicantName }}</p>
-              <p class="text-sm"><strong>Email:</strong> {{ selectedRegistration.applicantEmail }}</p>
+              <p class="text-sm">
+                <strong>Name:</strong> {{ selectedRegistration.applicantName }}
+              </p>
+              <p class="text-sm">
+                <strong>Email:</strong>
+                {{ selectedRegistration.applicantEmail }}
+              </p>
             </div>
-            <p class="text-sm text-red-600">
-              This action cannot be undone.
-            </p>
+            <p class="text-sm text-red-600">This action cannot be undone.</p>
           </div>
 
           <template #footer>
             <div class="flex gap-3 justify-end">
               <UButton
                 variant="soft"
-                color="gray"
+                color="neutral"
                 @click="isDeleteConfirmOpen = false"
               >
                 Cancel
               </UButton>
               <UButton
-                color="red"
+                color="error"
                 :loading="deleteSubmitting"
                 @click="submitDelete"
               >
@@ -221,11 +209,11 @@
 
 <script setup lang="ts">
 definePageMeta({
-  layout: 'default',
+  layout: "default",
 });
 
 // Fetch all registrations
-const { data, pending, error, refresh } = await useFetch('/api/registrations');
+const { data, pending, error, refresh } = await useFetch("/api/registrations");
 
 // Map registrations data
 const registrationsData = computed(() => {
@@ -239,21 +227,27 @@ const registrationsData = computed(() => {
   }));
 });
 
+type RegistrationRow = (typeof registrationsData.value)[number];
+
 // Table columns
 const columns = [
-  { key: 'eventId', label: 'Event ID', sortable: true },
-  { key: 'applicantName', label: 'Applicant Name', sortable: true },
-  { key: 'applicantEmail', label: 'Email', sortable: true },
-  { key: 'categoryId', label: 'Category', sortable: true },
-  { key: 'createdAt', label: 'Registered At', sortable: true },
-  { key: 'actions', label: 'Actions', sortable: false },
+  { accessorKey: "eventId", header: "Event ID", enableSorting: true },
+  {
+    accessorKey: "applicantName",
+    header: "Applicant Name",
+    enableSorting: true,
+  },
+  { accessorKey: "applicantEmail", header: "Email", enableSorting: true },
+  { accessorKey: "categoryId", header: "Category", enableSorting: true },
+  { accessorKey: "createdAt", header: "Registered At", enableSorting: true },
+  { id: "actions", header: "Actions", enableSorting: false },
 ];
 
 // Edit modal state
 const isEditModalOpen = ref(false);
-const selectedRegistration = ref<any>(null);
+const selectedRegistration = ref<RegistrationRow | null>(null);
 const editFormState = reactive({
-  applicantName: '',
+  applicantName: "",
   categoryId: 0,
 });
 const editSubmitting = ref(false);
@@ -265,17 +259,17 @@ const deleteSubmitting = ref(false);
 // Helper functions
 const formatDate = (dateString: string | Date) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
 // Edit modal handlers
-const openEditModal = (registration: any) => {
+const openEditModal = (registration: RegistrationRow) => {
   selectedRegistration.value = registration;
   editFormState.applicantName = registration.applicantName;
   editFormState.categoryId = registration.categoryId;
@@ -283,11 +277,15 @@ const openEditModal = (registration: any) => {
 };
 
 const submitEdit = async () => {
+  if (!selectedRegistration.value) {
+    return;
+  }
+
   try {
     editSubmitting.value = true;
 
     await $fetch(`/api/registrations/${selectedRegistration.value.id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: {
         applicantName: editFormState.applicantName,
         categoryId: editFormState.categoryId,
@@ -297,30 +295,34 @@ const submitEdit = async () => {
     isEditModalOpen.value = false;
     await refresh();
   } catch (err) {
-    console.error('Edit error:', err);
+    console.error("Edit error:", err);
   } finally {
     editSubmitting.value = false;
   }
 };
 
 // Delete confirmation handlers
-const openDeleteConfirm = (registration: any) => {
+const openDeleteConfirm = (registration: RegistrationRow) => {
   selectedRegistration.value = registration;
   isDeleteConfirmOpen.value = true;
 };
 
 const submitDelete = async () => {
+  if (!selectedRegistration.value) {
+    return;
+  }
+
   try {
     deleteSubmitting.value = true;
 
     await $fetch(`/api/registrations/${selectedRegistration.value.id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
 
     isDeleteConfirmOpen.value = false;
     await refresh();
   } catch (err) {
-    console.error('Delete error:', err);
+    console.error("Delete error:", err);
   } finally {
     deleteSubmitting.value = false;
   }

@@ -1,17 +1,17 @@
-import { drizzle } from 'drizzle-orm/cloudflare-d1';
-import { eq } from 'drizzle-orm';
-import { registrations } from '~/server/database/schema';
+import { drizzle } from "drizzle-orm/d1";
+import { eq } from "drizzle-orm";
+import { registrations } from "~~/server/database/schema";
 
 export default defineEventHandler(async (event) => {
   try {
-    const id = getRouterParam(event, 'id');
+    const id = getRouterParam(event, "id");
 
     if (!id || isNaN(Number(id))) {
       return sendError(
         event,
         createError({
           statusCode: 400,
-          message: 'Invalid registration ID',
+          message: "Invalid registration ID",
         }),
       );
     }
@@ -32,28 +32,26 @@ export default defineEventHandler(async (event) => {
         event,
         createError({
           statusCode: 404,
-          message: 'Registration not found',
+          message: "Registration not found",
         }),
       );
     }
 
     // Delete registration
-    await db
-      .delete(registrations)
-      .where(eq(registrations.id, registrationId));
+    await db.delete(registrations).where(eq(registrations.id, registrationId));
 
     return {
       success: true,
-      message: 'Registration deleted successfully',
+      message: "Registration deleted successfully",
       id: registrationId,
     };
   } catch (error) {
-    console.error('Delete registration error:', error);
+    console.error("Delete registration error:", error);
     return sendError(
       event,
       createError({
         statusCode: 500,
-        message: 'Failed to delete registration',
+        message: "Failed to delete registration",
       }),
     );
   }

@@ -1,0 +1,7 @@
+name = "cypher-desk"
+compatibility_date = "2026-08-05"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cypher-desk"
+database_id = "845a7ecf-2e98-49ad-9872-0c2e6064a211"

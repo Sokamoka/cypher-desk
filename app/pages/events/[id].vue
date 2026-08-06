@@ -4,7 +4,7 @@
       <!-- Back Button -->
       <div class="mb-6">
         <NuxtLink to="/events">
-          <UButton icon="heroicons:arrow-left" variant="soft" color="gray">
+          <UButton icon="heroicons:arrow-left" variant="soft" color="neutral">
             Back to Events
           </UButton>
         </NuxtLink>
@@ -43,7 +43,7 @@
             <UBadge
               v-for="category in data.event.categories"
               :key="category.id"
-              color="blue"
+              color="info"
               variant="subtle"
             >
               {{ category.name }}
@@ -186,7 +186,7 @@
                   <UAlert
                     v-if="submitError"
                     icon="heroicons:exclamation-triangle"
-                    color="red"
+                    color="error"
                     title="Registration Error"
                     :description="submitError"
                     class="mb-4"
@@ -194,7 +194,7 @@
                   <UAlert
                     v-if="submitSuccess"
                     icon="heroicons:check-circle"
-                    color="green"
+                    color="success"
                     title="Success"
                     description="You have successfully registered for this event!"
                     class="mb-4"
@@ -205,7 +205,7 @@
                     type="submit"
                     block
                     :loading="submitting"
-                    color="blue"
+                    color="info"
                   >
                     <Icon name="heroicons:check" class="w-4 h-4 mr-2" />
                     Register Now
@@ -221,7 +221,7 @@
 </template>
 
 <script setup lang="ts">
-import { v } from "valibot";
+import * as v from "valibot";
 import {
   CreateRegistrationSchema,
   type CreateRegistration,

@@ -112,31 +112,34 @@ Create a `.env.local` file in the project root (if not already present):
 
 ## Cloudflare D1 Database Setup
 
-### Option 1: Create Local D1 Database
+### Step 1: Create Remote D1 Database (Required Once)
 
-For local development:
-
-```bash
-# Create a new local D1 database
-pnpm dlx wrangler d1 create cypher-desk --local
-
-# This generates a .wrangler/state/v3/d1/SQLite3 database file locally
-```
-
-### Option 2: Create Remote D1 Database (Production)
-
-For production deployment on Cloudflare:
+In current Wrangler versions, `wrangler d1 create` only creates a remote database.
+You must create a remote DB first and add its binding in Wrangler config.
 
 ```bash
 # Create a remote D1 database on Cloudflare
 pnpm dlx wrangler d1 create cypher-desk
 
 # Follow the prompts and note the database ID
-# Add the database ID to wrangler.toml:
+# Create wrangler.toml if it does not exist, then add:
+# name = "cypher-desk"
+# compatibility_date = "2026-08-05"
 # [[d1_databases]]
 # binding = "DB"
 # database_name = "cypher-desk"
 # database_id = "<YOUR_DATABASE_ID>"
+```
+
+### Step 2: Initialize Local D1 State (Wrangler v4+)
+
+After adding the D1 binding in Wrangler config, initialize and use the local DB with `--local`:
+
+```bash
+# Initialize local D1 state (creates local DB files if missing)
+pnpm dlx wrangler d1 execute cypher-desk --local --command="SELECT 1;"
+
+# Local DB files are stored under .wrangler/state/ by default
 ```
 
 ## Database Schema & Migrations
@@ -608,8 +611,11 @@ pnpm build
 # Generate database migrations
 pnpm drizzle-kit generate
 
-# Create local D1 database
-pnpm dlx wrangler d1 create cypher-desk --local
+# Create remote D1 database (required once)
+pnpm dlx wrangler d1 create cypher-desk
+
+# Initialize local D1 state
+pnpm dlx wrangler d1 execute cypher-desk --local --command="SELECT 1;"
 
 # Apply migrations locally
 pnpm dlx wrangler d1 execute cypher-desk --local --file=./server/database/migrations/<file>.sql
@@ -620,5 +626,5 @@ pnpm dlx wrangler deploy
 
 ---
 
-**Last Updated:** 2026-08-05  
+**Last Updated:** 2026-08-06  
 **Version:** 1.0.0

@@ -4,7 +4,7 @@
       <!-- Back Button -->
       <div class="mb-6">
         <NuxtLink to="/admin">
-          <UButton icon="heroicons:arrow-left" variant="soft" color="gray">
+          <UButton icon="heroicons:arrow-left" variant="soft" color="neutral">
             Back to Admin
           </UButton>
         </NuxtLink>
@@ -34,7 +34,7 @@
               <UTextarea
                 v-model="formState.description"
                 placeholder="Enter event description"
-                rows="5"
+                :rows="5"
               />
             </UFormGroup>
 
@@ -61,7 +61,7 @@
                   type="button"
                   icon="heroicons:plus"
                   size="sm"
-                  color="green"
+                  color="success"
                   variant="soft"
                   @click="addCategory"
                 >
@@ -106,7 +106,7 @@
                       type="button"
                       icon="heroicons:trash"
                       size="sm"
-                      color="red"
+                      color="error"
                       variant="ghost"
                       @click="removeCategory(index)"
                     >
@@ -134,14 +134,14 @@
             <UAlert
               v-if="submitError"
               icon="heroicons:exclamation-triangle"
-              color="red"
+              color="error"
               title="Error"
               :description="submitError"
             />
             <UAlert
               v-if="submitSuccess"
               icon="heroicons:check-circle"
-              color="green"
+              color="success"
               title="Success"
               description="Event created successfully! Redirecting..."
             />
@@ -151,14 +151,14 @@
               <UButton
                 type="submit"
                 :loading="submitting"
-                color="blue"
+                color="info"
                 class="flex-1"
               >
                 <Icon name="heroicons:check" class="w-4 h-4 mr-2" />
                 Create Event
               </UButton>
               <NuxtLink to="/admin">
-                <UButton type="button" color="gray" variant="soft">
+                <UButton type="button" color="neutral" variant="soft">
                   Cancel
                 </UButton>
               </NuxtLink>
@@ -171,7 +171,7 @@
 </template>
 
 <script setup lang="ts">
-import { v } from "valibot";
+import * as v from "valibot";
 import { CreateEventSchema, type CategoryInput } from "~~/utils/schemas";
 
 definePageMeta({
@@ -204,13 +204,23 @@ const removeCategory = (index: number) => {
 
 // Update category name
 const updateCategoryName = (index: number, name: string) => {
-  categories.value[index].name = name;
+  const category = categories.value[index];
+  if (!category) {
+    return;
+  }
+
+  category.name = name;
 };
 
 // Update category capacity
 const updateCategoryCapacity = (index: number, capacity: string) => {
   const num = capacity ? Number(capacity) : undefined;
-  categories.value[index].maxCapacity = num;
+  const category = categories.value[index];
+  if (!category) {
+    return;
+  }
+
+  category.maxCapacity = num;
 };
 
 // Form submission
