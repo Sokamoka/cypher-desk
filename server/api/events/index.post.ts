@@ -1,45 +1,35 @@
 import { drizzle } from "drizzle-orm/d1";
 import * as v from "valibot";
-import { events, categories } from "~~/server/database/schema";
+import { events } from "~~/server/database/schema";
 import { CreateEventSchema } from "~~/utils/schemas";
+import { requireSessionUser } from "~~/server/utils/auth";
+import { generateEventSlug } from "~~/server/utils/slug";
 
 export default defineEventHandler(async (event) => {
+  const user = await requireSessionUser(event);
+
   try {
     const body = await readBody(event);
-
-    // Validate input
     const validatedData = v.parse(CreateEventSchema, body);
 
-    // Get database from Cloudflare D1 binding
     const db = drizzle(event.context.cloudflare.env.DB);
 
-    // Generate event ID (UUID-like for this example)
-    const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const eventId = `event_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    const slug = generateEventSlug(validatedData.title);
 
-    // Local D1 runtime does not allow SQL BEGIN/SAVEPOINT from Drizzle transaction().
-    // Use sequential inserts for compatibility.
     await db.insert(events).values({
       id: eventId,
+      userId: user.id,
       title: validatedData.title,
       description: validatedData.description,
-      eventDate: validatedData.eventDate,
-      location: validatedData.location,
+      date: validatedData.date,
+      slug,
     });
-
-    let createdCategoryCount = 0;
-    for (const cat of validatedData.categories) {
-      await db.insert(categories).values({
-        eventId: eventId,
-        name: cat.name,
-        maxCapacity: cat.maxCapacity,
-      });
-      createdCategoryCount += 1;
-    }
 
     return {
       success: true,
       eventId,
-      categoryCount: createdCategoryCount,
+      slug,
       message: "Event created successfully",
     };
   } catch (error) {

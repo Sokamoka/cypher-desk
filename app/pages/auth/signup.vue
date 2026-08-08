@@ -34,33 +34,37 @@ const fields = [
   },
 ];
 
-const providers = [
-  {
-    label: "Google",
-    icon: "i-simple-icons-google",
-    onClick: () => {
-      toast.add({ title: "Google", description: "Login with Google" });
-    },
-  },
-  {
-    label: "GitHub",
-    icon: "i-simple-icons-github",
-    onClick: () => {
-      toast.add({ title: "GitHub", description: "Login with GitHub" });
-    },
-  },
-];
-
 const schema = v.object({
-  name: v.pipe(v.string()),
+  name: v.pipe(v.string(), v.minLength(1, "Name is required")),
   email: v.pipe(v.string(), v.email("Invalid email")),
   password: v.pipe(v.string(), v.minLength(8, "Must be at least 8 characters")),
 });
 
 type Schema = v.InferOutput<typeof schema>;
 
-function onSubmit(payload: FormSubmitEvent<Schema>) {
-  console.log("Submitted", payload);
+const loading = ref(false);
+
+async function onSubmit(payload: FormSubmitEvent<Schema>) {
+  loading.value = true;
+
+  const { error } = await signUp.email({
+    name: payload.data.name,
+    email: payload.data.email,
+    password: payload.data.password,
+  });
+
+  loading.value = false;
+
+  if (error) {
+    toast.add({
+      title: "Sign up failed",
+      description: error.message ?? "Could not create your account",
+      color: "error",
+    });
+    return;
+  }
+
+  await navigateTo("/dashboard");
 }
 </script>
 
@@ -68,7 +72,7 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
   <UAuthForm
     :fields="fields"
     :schema="schema"
-    :providers="providers"
+    :loading="loading"
     title="Create an account"
     :submit="{ label: 'Create account' }"
     @submit="onSubmit"

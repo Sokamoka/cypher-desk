@@ -12,6 +12,7 @@ useSeoMeta({
 });
 
 const toast = useToast();
+const route = useRoute();
 
 const fields = [
   {
@@ -27,28 +28,6 @@ const fields = [
     type: "password" as const,
     placeholder: "Enter your password",
   },
-  {
-    name: "remember",
-    label: "Remember me",
-    type: "checkbox" as const,
-  },
-];
-
-const providers = [
-  {
-    label: "Google",
-    icon: "i-simple-icons-google",
-    onClick: () => {
-      toast.add({ title: "Google", description: "Login with Google" });
-    },
-  },
-  // {
-  //   label: "GitHub",
-  //   icon: "i-simple-icons-github",
-  //   onClick: () => {
-  //     toast.add({ title: "GitHub", description: "Login with GitHub" });
-  //   },
-  // },
 ];
 
 const schema = v.object({
@@ -58,8 +37,29 @@ const schema = v.object({
 
 type Schema = v.InferOutput<typeof schema>;
 
-function onSubmit(payload: FormSubmitEvent<Schema>) {
-  console.log("Submitted", payload);
+const loading = ref(false);
+
+async function onSubmit(payload: FormSubmitEvent<Schema>) {
+  loading.value = true;
+
+  const { error } = await signIn.email({
+    email: payload.data.email,
+    password: payload.data.password,
+  });
+
+  loading.value = false;
+
+  if (error) {
+    toast.add({
+      title: "Login failed",
+      description: error.message ?? "Invalid email or password",
+      color: "error",
+    });
+    return;
+  }
+
+  const redirect = (route.query.redirect as string) || "/dashboard";
+  await navigateTo(redirect);
 }
 </script>
 
@@ -67,7 +67,7 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
   <UAuthForm
     :fields="fields"
     :schema="schema"
-    :providers="providers"
+    :loading="loading"
     title="Welcome back"
     icon="i-lucide-lock"
     @submit="onSubmit"
@@ -75,12 +75,6 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
     <template #description>
       Don't have an account?
       <ULink to="/auth/signup" class="text-primary font-medium">Sign up</ULink>.
-    </template>
-
-    <template #password-hint>
-      <ULink to="/" class="text-primary font-medium" tabindex="-1"
-        >Forgot password?</ULink
-      >
     </template>
 
     <template #footer>

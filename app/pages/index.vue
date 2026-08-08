@@ -9,17 +9,17 @@ const page = {
     headline: "The All-in-One Platform for Street Dance Events",
     links: [
       {
-        label: "Events",
+        label: "Get Started",
         color: "primary",
         size: "xl",
-        to: "/events",
+        to: "/auth/signup",
       },
       {
-        label: "Admin",
+        label: "Sign In",
         color: "neutral",
         size: "xl",
         variant: "soft",
-        to: "/admin",
+        to: "/auth/login",
       },
     ],
   },

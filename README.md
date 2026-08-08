@@ -1,11 +1,12 @@
 # Event Management Web App
 
-A modern event management application built with **Nuxt 4**, **TypeScript**, **Cloudflare D1 (SQLite)**, **Drizzle ORM**, and **Nuxt UI**. Manage events and registrations with a public listing, registration form, and admin dashboard.
+A modern event management application built with **Nuxt 4**, **TypeScript**, **Cloudflare D1 (SQLite)**, **Drizzle ORM**, **Better Auth**, and **Nuxt UI**. Authenticated organizers create and manage their own events; anyone with a public event link can view it and register without an account.
 
 ## Tech Stack
 
 - **Framework:** Nuxt 4 (TypeScript, Vue 3, Composition API)
 - **UI Component Library:** Nuxt UI (`UForm`, `UFormGroup`, `UInput`, `UTable`, `UModal`, `USelect`, etc.)
+- **Authentication:** Better Auth (email/password, backed by Cloudflare D1 via the Drizzle adapter)
 - **Validation:** Valibot (client-side and server-side validation)
 - **Database & ORM:** Cloudflare D1 (SQLite) + Drizzle ORM
 - **Deployment Platform:** Cloudflare Pages / Workers
@@ -43,29 +44,40 @@ Before you begin, ensure you have the following installed:
 ├── app/                               # Nuxt srcDir (configured in nuxt.config.ts)
 │   ├── app.vue
 │   ├── layouts/
-│   │   └── default.vue
+│   │   ├── auth.vue
+│   │   ├── dashboard.vue
+│   │   └── page.vue
+│   ├── middleware/
+│   │   └── auth.ts                    # Redirects unauthenticated users away from /dashboard
+│   ├── utils/
+│   │   └── auth-client.ts             # Better Auth Vue client (signIn/signUp/signOut/useSession)
 │   └── pages/
-│       ├── index.vue                  # Home (redirects to /events)
-│       ├── events/
-│       │   ├── index.vue              # Events listing page
-│       │   └── [id].vue               # Event details & registration
-│       └── admin/
-│           ├── index.vue              # Admin dashboard
-│           └── events/
-│               └── create.vue         # Admin create event
+│       ├── index.vue                  # Marketing home page
+│       ├── auth/
+│       │   ├── login.vue
+│       │   └── signup.vue
+│       ├── dashboard/
+│       │   └── index.vue              # Protected: current user's events + create form
+│       └── e/
+│           └── [id].vue                # Public event page (by id or slug) + registration form
 ├── server/
 │   ├── api/                           # Nuxt server endpoints
-│   │   ├── events/
-│   │   │   ├── index.get.ts           # GET /api/events (list all)
-│   │   │   ├── index.post.ts          # POST /api/events (create)
-│   │   │   └── [id].get.ts            # GET /api/events/[id] (single event)
-│   │   └── registrations/
-│   │       ├── index.get.ts           # GET /api/registrations (list all)
-│   │       ├── index.post.ts          # POST /api/registrations (create)
-│   │       ├── [id].put.ts            # PUT /api/registrations/[id] (update)
-│   │       └── [id].delete.ts         # DELETE /api/registrations/[id]
+│   │   ├── auth/
+│   │   │   └── [...all].ts            # Better Auth catch-all handler
+│   │   ├── events/                    # Protected — requires a Better Auth session
+│   │   │   ├── index.get.ts           # GET /api/events (current user's events only)
+│   │   │   ├── index.post.ts          # POST /api/events (create, owned by current user)
+│   │   │   ├── [id].get.ts            # GET /api/events/[id] (owner only)
+│   │   │   ├── [id].put.ts            # PUT /api/events/[id] (owner only)
+│   │   │   └── [id].delete.ts         # DELETE /api/events/[id] (owner only)
+│   │   └── public/events/             # Public — no auth required
+│   │       ├── [id].get.ts            # GET /api/public/events/[id] (by id or slug)
+│   │       └── [id]/register.post.ts  # POST /api/public/events/[id]/register
+│   ├── utils/
+│   │   ├── auth.ts                    # Per-request Better Auth instance + requireSessionUser()
+│   │   └── slug.ts                    # Public event slug generation
 │   └── database/
-│       └── schema.ts                  # Drizzle ORM SQLite schema
+│       └── schema.ts                  # Drizzle ORM SQLite schema (Better Auth + events + registrations)
 ├── utils/
 │   └── schemas.ts                    # Valibot validation schemas
 ├── drizzle.config.ts                  # Drizzle Kit configuration
@@ -104,11 +116,15 @@ This will install all dependencies including:
 Create a `.env.local` file in the project root (if not already present):
 
 ```env
-# Cloudflare D1 Database (will be configured in wrangler.toml)
-# No additional env vars needed for D1 - it's accessed via event.context.cloudflare.env.DB
+# Cloudflare D1 Database (accessed via event.context.cloudflare.env.DB, no vars needed)
+
+# Better Auth
+# Generate a strong secret with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+BETTER_AUTH_SECRET=<your-generated-secret>
+BETTER_AUTH_URL=http://localhost:3456
 ```
 
-> **Note:** Cloudflare D1 is automatically bound to your Nuxt server handlers via the `event.context.cloudflare.env.DB` object.
+> **Note:** Cloudflare D1 is automatically bound to your Nuxt server handlers via the `event.context.cloudflare.env.DB` object. Nitro's Cloudflare dev emulation also loads `.env.local` into `event.context.cloudflare.env`, so `BETTER_AUTH_SECRET`/`BETTER_AUTH_URL` are available the same way in both local dev and production. For production, set `BETTER_AUTH_SECRET` with `wrangler secret put BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` via `wrangler.toml` `[vars]`.
 
 ## Cloudflare D1 Database Setup
 
@@ -223,27 +239,31 @@ This starts:
 
 ### Access Application
 
-- **Public Site:** http://localhost:3000/events
-- **Admin Dashboard:** http://localhost:3000/admin
-- **Create Event:** http://localhost:3000/admin/events/create
+- **Home:** http://localhost:3456/
+- **Sign up / Login:** http://localhost:3456/auth/signup, http://localhost:3456/auth/login
+- **Dashboard (protected):** http://localhost:3456/dashboard
+- **Public Event Page:** http://localhost:3456/e/{id-or-slug}
 
 ### Development Workflow
 
-1. **View Public Events:**
-   - Navigate to http://localhost:3000/events
-   - Click on any event to see details
-   - Fill registration form to test POST endpoint
+1. **Sign up and create an event:**
+   - Navigate to http://localhost:3456/auth/signup and create an account
+   - You're redirected to `/dashboard`; use "Create Event" to add an event
+   - Each event gets a public slug shown in the table (e.g. `/e/my-event-ab12cd`)
 
-2. **Admin Dashboard:**
-   - Navigate to http://localhost:3000/admin
-   - View all registrations in the table
-   - Edit or delete registrations using modal/confirmation
-   - Create new events with dynamic categories
+2. **Public registration:**
+   - Open the event's public link from another browser/incognito session (no login required)
+   - Fill in the registration form (`attendeeName`, `attendeeEmail`)
 
-3. **API Testing:**
-   - Events API: `GET http://localhost:3000/api/events`
-   - Single Event: `GET http://localhost:3000/api/events/{id}`
-   - Create Registration: `POST http://localhost:3000/api/registrations`
+3. **Strict user isolation:**
+   - Sign up as a second user — their `/dashboard` only shows their own events
+   - `GET/PUT/DELETE /api/events/{id}` return `404` (not `403`) for events owned by another user, to avoid leaking existence
+
+4. **API Testing:**
+   - Your events (session required): `GET http://localhost:3456/api/events`
+   - Create event (session required): `POST http://localhost:3456/api/events`
+   - Public event details: `GET http://localhost:3456/api/public/events/{id-or-slug}`
+   - Public registration: `POST http://localhost:3456/api/public/events/{id-or-slug}/register`
 
 ## Building for Production
 
@@ -312,60 +332,47 @@ pnpm dlx wrangler deploy
 
 ## Database Schema
 
+### Better Auth Tables (`user`, `session`, `account`, `verification`)
+
+Managed by the Better Auth Drizzle/D1 adapter — see `server/database/schema.ts` for the full
+field list. These back email/password authentication; `events.userId` references `user.id`.
+
 ### Events Table
 
 ```sql
 CREATE TABLE events (
   id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
-  eventDate TEXT NOT NULL,
-  location TEXT,
-  createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  date TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-### Categories Table
+### Event Registrations Table
 
 ```sql
-CREATE TABLE categories (
+CREATE TABLE event_registrations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  eventId TEXT NOT NULL REFERENCES events(id),
-  name TEXT NOT NULL,
-  maxCapacity INTEGER
-);
-```
-
-### Registrations Table
-
-```sql
-CREATE TABLE registrations (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  eventId TEXT NOT NULL REFERENCES events(id),
-  categoryId INTEGER NOT NULL REFERENCES categories(id),
-  applicantName TEXT NOT NULL,
-  applicantEmail TEXT NOT NULL,
-  createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Users Table
-
-```sql
-CREATE TABLE users (
-  id TEXT PRIMARY KEY,
-  email TEXT NOT NULL UNIQUE,
-  passwordHash TEXT NOT NULL,
-  role TEXT DEFAULT 'USER',
-  createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  attendee_name TEXT NOT NULL,
+  attendee_email TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
 ## API Endpoints
 
-### Public Endpoints
+### Protected Endpoints (require a Better Auth session)
 
-#### List All Events
+All routes under `/api/events/*` validate the session via `requireSessionUser()`
+(`server/utils/auth.ts`) and strictly scope reads/writes to `events.userId === session.user.id`.
+Accessing or modifying another user's event returns `404` (not `403`), to avoid leaking whether
+the event exists.
+
+#### List Current User's Events
 
 ```
 GET /api/events
@@ -376,84 +383,11 @@ Response:
   "events": [
     {
       "id": "event_xxx",
+      "userId": "usr_xxx",
       "title": "Sample Event",
       "description": "Event details",
-      "eventDate": "2026-08-10T14:00:00Z",
-      "location": "New York",
-      "categories": [
-        { "id": 1, "name": "Girl", "maxCapacity": 20 }
-      ],
-      "createdAt": "2026-08-05T22:00:00Z"
-    }
-  ],
-  "total": 1
-}
-```
-
-#### Get Single Event
-
-```
-GET /api/events/{id}
-
-Response:
-{
-  "success": true,
-  "event": {
-    "id": "event_xxx",
-    "title": "Sample Event",
-    "eventDate": "2026-08-10T14:00:00Z",
-    "categories": [...],
-    "participantsByCategory": {
-      "1": {
-        "category": { "id": 1, "name": "Girl", "maxCapacity": 20 },
-        "participants": [
-          { "id": 1, "name": "John Doe", "createdAt": "2026-08-05T22:00:00Z" }
-        ]
-      }
-    },
-    "registrationCount": 1
-  }
-}
-```
-
-#### Create Registration
-
-```
-POST /api/registrations
-
-Request:
-{
-  "eventId": "event_xxx",
-  "categoryId": 1,
-  "applicantName": "John Doe",
-  "applicantEmail": "john@example.com"
-}
-
-Response:
-{
-  "success": true,
-  "registrationId": 1,
-  "message": "Registration submitted successfully"
-}
-```
-
-### Admin Endpoints
-
-#### List All Registrations
-
-```
-GET /api/registrations
-
-Response:
-{
-  "success": true,
-  "registrations": [
-    {
-      "id": 1,
-      "eventId": "event_xxx",
-      "categoryId": 1,
-      "applicantName": "John Doe",
-      "applicantEmail": "john@example.com",
+      "date": "2026-08-10T14:00",
+      "slug": "sample-event-ab12cd",
       "createdAt": "2026-08-05T22:00:00Z"
     }
   ],
@@ -470,54 +404,67 @@ Request:
 {
   "title": "New Event",
   "description": "Event description",
-  "eventDate": "2026-08-10T14:00:00Z",
-  "location": "New York",
-  "categories": [
-    { "name": "Girl", "maxCapacity": 20 },
-    { "name": "1x1 Open" }
-  ]
+  "date": "2026-08-10T14:00"
 }
 
 Response:
 {
   "success": true,
   "eventId": "event_xxx",
-  "categoryCount": 2,
+  "slug": "new-event-ab12cd",
   "message": "Event created successfully"
 }
 ```
 
-#### Update Registration
+#### Get / Update / Delete a Single Event (owner only)
 
 ```
-PUT /api/registrations/{id}
+GET    /api/events/{id}
+PUT    /api/events/{id}
+DELETE /api/events/{id}
+```
+
+### Public Endpoints (no authentication)
+
+#### Get Public Event Details
+
+```
+GET /api/public/events/{id-or-slug}
+
+Response:
+{
+  "success": true,
+  "event": {
+    "id": "event_xxx",
+    "title": "Sample Event",
+    "description": "Event details",
+    "date": "2026-08-10T14:00",
+    "slug": "sample-event-ab12cd"
+  }
+}
+```
+
+Note: the public payload never includes `userId` or registration/attendee data.
+
+#### Submit Registration
+
+```
+POST /api/public/events/{id-or-slug}/register
 
 Request:
 {
-  "applicantName": "Updated Name",
-  "categoryId": 2
+  "attendeeName": "John Doe",
+  "attendeeEmail": "john@example.com"
 }
 
 Response:
 {
   "success": true,
-  "registrationId": 1,
-  "message": "Registration updated successfully"
+  "message": "Registration submitted successfully"
 }
 ```
 
-#### Delete Registration
-
-```
-DELETE /api/registrations/{id}
-
-Response:
-{
-  "success": true,
-  "message": "Registration deleted successfully",
-  "id": 1
-}
-```
+Note: the response never echoes back `attendeeEmail` or any other attendee's data.
 
 ## Troubleshooting
 
@@ -564,15 +511,16 @@ All code strictly follows English conventions:
 
 ### Important Security Notes
 
-1. **Email Privacy:** Applicant emails are NEVER returned in public API responses (e.g., event details endpoint)
-2. **Admin Only:** User management and admin endpoints should be protected with authentication
+1. **Email Privacy:** Attendee emails are NEVER returned in public API responses (e.g. the public event details endpoint, or the registration confirmation response)
+2. **Strict User Isolation:** Every `/api/events/*` handler validates the Better Auth session and scopes reads/writes to `events.userId === session.user.id`; cross-user access returns `404`, not `403`
 3. **Validation:** All inputs are validated server-side using Valibot schemas
 4. **Database:** D1 is SQLite - ensure database file is not exposed in version control
 
 ### Environment Variables
 
 - Never commit `.env.local` or sensitive credentials
-- Use Cloudflare dashboard for production secrets
+- `BETTER_AUTH_SECRET` must be set via `wrangler secret put BETTER_AUTH_SECRET` for production (never commit the real value to `wrangler.toml`)
+- Use Cloudflare dashboard/`wrangler.toml` `[vars]` for non-secret production config like `BETTER_AUTH_URL`
 - D1 binding is automatically available in `event.context.cloudflare.env.DB`
 
 ## Contributing

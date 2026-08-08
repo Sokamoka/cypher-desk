@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
-import { events, eventRegistrations } from "~~/server/database/schema";
+import { events } from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
 
 export default defineEventHandler(async (event) => {
@@ -16,31 +16,26 @@ export default defineEventHandler(async (event) => {
 
   const db = drizzle(event.context.cloudflare.env.DB);
 
-  const eventData = await db
+  const existing = await db
     .select()
     .from(events)
     .where(eq(events.id, id))
     .then((rows) => rows[0]);
 
-  // Strict user isolation: only the owner may view their event's management
-  // details (including registrations). Return 404 (not 403) to avoid leaking
-  // whether the event exists at all to other users.
-  if (!eventData || eventData.userId !== user.id) {
+  // Strict user isolation: only the owner may delete their own event.
+  if (!existing || existing.userId !== user.id) {
     return sendError(
       event,
       createError({ statusCode: 404, message: "Event not found" }),
     );
   }
 
-  const registrations = await db
-    .select()
-    .from(eventRegistrations)
-    .where(eq(eventRegistrations.eventId, id));
+  // event_registrations rows cascade-delete via the FK's ON DELETE CASCADE.
+  await db.delete(events).where(eq(events.id, id));
 
   return {
     success: true,
-    event: eventData,
-    registrations,
-    registrationCount: registrations.length,
+    message: "Event deleted successfully",
+    id,
   };
 });

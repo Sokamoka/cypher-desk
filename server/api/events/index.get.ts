@@ -1,46 +1,22 @@
 import { drizzle } from "drizzle-orm/d1";
-import { events, categories } from "~~/server/database/schema";
+import { eq } from "drizzle-orm";
+import { events } from "~~/server/database/schema";
+import { requireSessionUser } from "~~/server/utils/auth";
 
 export default defineEventHandler(async (event) => {
-  try {
-    const db = drizzle(event.context.cloudflare.env.DB);
+  const user = await requireSessionUser(event);
 
-    // Fetch all events
-    const allEvents = await db.select().from(events);
+  const db = drizzle(event.context.cloudflare.env.DB);
 
-    // Fetch all categories
-    const allCategories = await db.select().from(categories);
+  // Strict user isolation: only return events owned by the current user.
+  const userEvents = await db
+    .select()
+    .from(events)
+    .where(eq(events.userId, user.id));
 
-    // Enrich events with their categories
-    const enrichedEvents = allEvents.map((evt) => {
-      const eventCategories = allCategories.filter(
-        (cat) => cat.eventId === evt.id,
-      );
-
-      return {
-        id: evt.id,
-        title: evt.title,
-        description: evt.description,
-        eventDate: evt.eventDate,
-        location: evt.location,
-        categories: eventCategories,
-        createdAt: evt.createdAt,
-      };
-    });
-
-    return {
-      success: true,
-      events: enrichedEvents,
-      total: enrichedEvents.length,
-    };
-  } catch (error) {
-    console.error("Error fetching events:", error);
-    return sendError(
-      event,
-      createError({
-        statusCode: 500,
-        message: "Failed to fetch events",
-      }),
-    );
-  }
+  return {
+    success: true,
+    events: userEvents,
+    total: userEvents.length,
+  };
 });

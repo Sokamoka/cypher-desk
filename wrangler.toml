@@ -5,3 +5,10 @@ compatibility_date = "2026-08-05"
 binding = "DB"
 database_name = "cypher-desk"
 database_id = "845a7ecf-2e98-49ad-9872-0c2e6064a211"
+
+[vars]
+# Better Auth
+# BETTER_AUTH_SECRET must be set with `wrangler secret put BETTER_AUTH_SECRET` for
+# production deploys — do NOT commit the real secret here. Keep BETTER_AUTH_URL as
+# the deployed origin.
+BETTER_AUTH_URL = "http://localhost:3456"
