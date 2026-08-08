@@ -67,7 +67,6 @@ const variants: Record<
   <UHeader>
     <template #left>
       <NuxtLink to="/">
-        <!-- <AppLogo class="h-6 w-auto shrink-0" /> -->
         <div class="h-6 w-auto shrink-0 text-xl font-bold">
           Cypher<span class="text-primary">Desk</span>
         </div>
@@ -82,6 +81,7 @@ const variants: Record<
         color="neutral"
         variant="ghost"
         class="hidden lg:flex"
+        to="/auth/login"
       />
       <UButton
         label="Get started"
@@ -151,7 +151,13 @@ const variants: Record<
       <UNavigationMenu :items="items" orientation="vertical" />
 
       <div class="mt-4 flex flex-col gap-2">
-        <UButton label="Sign in" color="neutral" variant="soft" block />
+        <UButton
+          to="/auth/login"
+          label="Sign in"
+          color="neutral"
+          variant="soft"
+          block
+        />
         <UButton
           label="Get started"
           block

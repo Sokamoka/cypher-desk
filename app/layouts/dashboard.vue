@@ -144,9 +144,14 @@ const groups = computed(() => [
       class="bg-elevated/25"
       :ui="{ footer: 'lg:border-t lg:border-default' }"
     >
-      <template #header>
+      <template #header="{ collapsed }">
         <div class="text-highlighted font-bold text-xl">
-          Cypher<span class="text-primary">Desk</span>
+          <template v-if="collapsed"
+            >C<span class="text-primary">D</span></template
+          >
+          <template v-else
+            >Cypher<span class="text-primary">Desk</span></template
+          >
         </div>
       </template>
 
