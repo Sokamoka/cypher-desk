@@ -1,7 +1,12 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq, or } from "drizzle-orm";
 import * as v from "valibot";
-import { events, eventRegistrations } from "~~/server/database/schema";
+import {
+  events,
+  eventRegistrations,
+  eventCategories,
+  registrationCategories,
+} from "~~/server/database/schema";
 import { CreateEventRegistrationSchema } from "~~/utils/schemas";
 
 export default defineEventHandler(async (event) => {
@@ -33,11 +38,54 @@ export default defineEventHandler(async (event) => {
       );
     }
 
-    await db.insert(eventRegistrations).values({
-      eventId: eventData.id,
-      attendeeName: validatedData.attendeeName,
-      attendeeEmail: validatedData.attendeeEmail,
-    });
+    const availableCategories = await db
+      .select({ id: eventCategories.id })
+      .from(eventCategories)
+      .where(eq(eventCategories.eventId, eventData.id));
+
+    const availableCategoryIds = new Set(
+      availableCategories.map((category) => category.id),
+    );
+
+    // If the event has categories, at least one must be selected.
+    if (availableCategoryIds.size > 0 && validatedData.categoryIds.length === 0) {
+      return sendError(
+        event,
+        createError({
+          statusCode: 400,
+          message: "Please select at least one category",
+        }),
+      );
+    }
+
+    // Reject any category id that doesn't belong to this event.
+    const invalidCategoryIds = validatedData.categoryIds.filter(
+      (categoryId) => !availableCategoryIds.has(categoryId),
+    );
+    if (invalidCategoryIds.length > 0) {
+      return sendError(
+        event,
+        createError({ statusCode: 400, message: "Invalid category selection" }),
+      );
+    }
+
+    const [registration] = await db
+      .insert(eventRegistrations)
+      .values({
+        eventId: eventData.id,
+        attendeeName: validatedData.attendeeName,
+        attendeeEmail: validatedData.attendeeEmail,
+      })
+      .returning({ id: eventRegistrations.id });
+
+    if (validatedData.categoryIds.length > 0 && registration) {
+      await db.insert(registrationCategories).values(
+        validatedData.categoryIds.map((categoryId) => ({
+          registrationId: registration.id,
+          categoryId,
+        })),
+      );
+    }
 
     // Response intentionally omits other attendees' data — never echo the
     // registrations list or any other applicant's `attendeeEmail` here.

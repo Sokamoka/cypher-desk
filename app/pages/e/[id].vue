@@ -7,11 +7,16 @@ import {
 } from "~~/utils/schemas";
 
 definePageMeta({
-  layout: "page",
+  layout: "default",
 });
 
 const route = useRoute();
 const toast = useToast();
+
+interface EventCategory {
+  id: string;
+  name: string;
+}
 
 interface PublicEvent {
   id: string;
@@ -19,17 +24,18 @@ interface PublicEvent {
   description: string | null;
   date: string;
   slug: string;
+  categories: EventCategory[];
 }
 
-const {
-  data,
-  pending,
-  error,
-} = await useFetch<{ success: boolean; event: PublicEvent }>(
-  () => `/api/public/events/${route.params.id}`,
-);
+const { data, pending, error } = await useFetch<{
+  success: boolean;
+  event: PublicEvent;
+}>(() => `/api/public/events/${route.params.id}`);
 
 const eventData = computed(() => data.value?.event ?? null);
+const hasCategories = computed(
+  () => (eventData.value?.categories.length ?? 0) > 0,
+);
 
 useSeoMeta({
   title: () => eventData.value?.title ?? "Event",
@@ -46,7 +52,26 @@ const submitting = ref(false);
 const formState = reactive({
   attendeeName: "",
   attendeeEmail: "",
+  categoryIds: [] as string[],
 });
+
+// Require at least one category when the event has any, in addition to the
+// base registration schema.
+const registrationSchema = computed(() =>
+  hasCategories.value
+    ? v.pipe(
+        CreateEventRegistrationSchema,
+        v.forward(
+          v.partialCheck(
+            [["categoryIds"]],
+            (input) => input.categoryIds.length > 0,
+            "Please select at least one category",
+          ),
+          ["categoryIds"],
+        ),
+      )
+    : CreateEventRegistrationSchema,
+);
 
 async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
   submitting.value = true;
@@ -78,10 +103,7 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
       <USkeleton class="h-32 w-full" />
     </div>
 
-    <div
-      v-else-if="error || !eventData"
-      class="text-center py-24"
-    >
+    <div v-else-if="error || !eventData" class="text-center py-24">
       <p class="text-muted">This event could not be found.</p>
     </div>
 
@@ -107,7 +129,7 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
 
         <UForm
           v-else
-          :schema="CreateEventRegistrationSchema"
+          :schema="registrationSchema"
           :state="formState"
           class="space-y-4"
           @submit="onRegister"
@@ -121,6 +143,20 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
               v-model="formState.attendeeEmail"
               type="email"
               placeholder="you@example.com"
+            />
+          </UFormField>
+
+          <UFormField
+            v-if="hasCategories"
+            label="Categories"
+            name="categoryIds"
+            required
+          >
+            <UCheckboxGroup
+              v-model="formState.categoryIds"
+              :items="
+                eventData.categories.map((c) => ({ label: c.name, value: c.id }))
+              "
             />
           </UFormField>
 

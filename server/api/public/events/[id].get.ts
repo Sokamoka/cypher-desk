@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq, or } from "drizzle-orm";
-import { events } from "~~/server/database/schema";
+import { events, eventCategories } from "~~/server/database/schema";
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
@@ -33,10 +33,15 @@ export default defineEventHandler(async (event) => {
     );
   }
 
+  const categories = await db
+    .select({ id: eventCategories.id, name: eventCategories.name })
+    .from(eventCategories)
+    .where(eq(eventCategories.eventId, eventData.id));
+
   // Public payload intentionally excludes `userId` and any registration/
   // attendee data (never leak `attendeeEmail` on public endpoints).
   return {
     success: true,
-    event: eventData,
+    event: { ...eventData, categories },
   };
 });

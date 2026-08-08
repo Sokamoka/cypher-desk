@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 // ---------------------------------------------------------------------------
@@ -107,6 +107,35 @@ export const eventRegistrations = sqliteTable('event_registrations', {
     .default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Event-specific categories (e.g. "Girls", "Boys") that an organizer defines
+// per event at creation time or later via edit.
+export const eventCategories = sqliteTable('event_categories', {
+  id: text('id').primaryKey(),
+  eventId: text('event_id')
+    .notNull()
+    .references(() => events.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Many-to-many join: a single registration can belong to multiple categories.
+export const registrationCategories = sqliteTable(
+  'registration_categories',
+  {
+    registrationId: integer('registration_id')
+      .notNull()
+      .references(() => eventRegistrations.id, { onDelete: 'cascade' }),
+    categoryId: text('category_id')
+      .notNull()
+      .references(() => eventCategories.id, { onDelete: 'cascade' }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.registrationId, table.categoryId] }),
+  }),
+);
+
 // ---------------------------------------------------------------------------
 // Inferred types
 // ---------------------------------------------------------------------------
@@ -128,3 +157,9 @@ export type NewEvent = typeof events.$inferInsert;
 
 export type EventRegistration = typeof eventRegistrations.$inferSelect;
 export type NewEventRegistration = typeof eventRegistrations.$inferInsert;
+
+export type EventCategory = typeof eventCategories.$inferSelect;
+export type NewEventCategory = typeof eventCategories.$inferInsert;
+
+export type RegistrationCategory = typeof registrationCategories.$inferSelect;
+export type NewRegistrationCategory = typeof registrationCategories.$inferInsert;

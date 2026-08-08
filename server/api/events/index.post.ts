@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import * as v from "valibot";
-import { events } from "~~/server/database/schema";
+import { events, eventCategories } from "~~/server/database/schema";
 import { CreateEventSchema } from "~~/utils/schemas";
 import { requireSessionUser } from "~~/server/utils/auth";
 import { generateEventSlug } from "~~/server/utils/slug";
@@ -25,6 +25,20 @@ export default defineEventHandler(async (event) => {
       date: validatedData.date,
       slug,
     });
+
+    const categoryNames = (validatedData.categories ?? []).filter(
+      (name) => name.trim().length > 0,
+    );
+
+    if (categoryNames.length > 0) {
+      await db.insert(eventCategories).values(
+        categoryNames.map((name) => ({
+          id: `cat_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+          eventId,
+          name,
+        })),
+      );
+    }
 
     return {
       success: true,

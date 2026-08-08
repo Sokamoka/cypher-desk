@@ -1,6 +1,11 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
-import { events, eventRegistrations } from "~~/server/database/schema";
+import {
+  events,
+  eventRegistrations,
+  eventCategories,
+  registrationCategories,
+} from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
 
 export default defineEventHandler(async (event) => {
@@ -37,10 +42,50 @@ export default defineEventHandler(async (event) => {
     .from(eventRegistrations)
     .where(eq(eventRegistrations.eventId, id));
 
+  const categories = await db
+    .select({ id: eventCategories.id, name: eventCategories.name })
+    .from(eventCategories)
+    .where(eq(eventCategories.eventId, id));
+
+  // Fetch each registration's selected categories via the join table, then
+  // group them by registration id so every registrant carries its own
+  // categories: {id, name}[] list.
+  const registrationIds = registrations.map((r) => r.id);
+  const registrationCategoryLinks = registrationIds.length
+    ? await db
+        .select({
+          registrationId: registrationCategories.registrationId,
+          categoryId: eventCategories.id,
+          categoryName: eventCategories.name,
+        })
+        .from(registrationCategories)
+        .innerJoin(
+          eventCategories,
+          eq(registrationCategories.categoryId, eventCategories.id),
+        )
+        .where(eq(eventCategories.eventId, id))
+    : [];
+
+  const categoriesByRegistrationId = new Map<
+    number,
+    { id: string; name: string }[]
+  >();
+  for (const link of registrationCategoryLinks) {
+    const list = categoriesByRegistrationId.get(link.registrationId) ?? [];
+    list.push({ id: link.categoryId, name: link.categoryName });
+    categoriesByRegistrationId.set(link.registrationId, list);
+  }
+
+  const registrationsWithCategories = registrations.map((registration) => ({
+    ...registration,
+    categories: categoriesByRegistrationId.get(registration.id) ?? [],
+  }));
+
   return {
     success: true,
     event: eventData,
-    registrations,
+    categories,
+    registrations: registrationsWithCategories,
     registrationCount: registrations.length,
   };
 });
