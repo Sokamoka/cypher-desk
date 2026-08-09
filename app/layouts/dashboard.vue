@@ -19,17 +19,17 @@ const links = [
       },
     },
   ],
-  [
-    {
-      label: "Sign out",
-      icon: "i-lucide-log-out",
-      onSelect: async () => {
-        open.value = false;
-        await signOut();
-        await navigateTo("/auth/login");
-      },
-    },
-  ],
+  // [
+  //   {
+  //     label: "Sign out",
+  //     icon: "i-lucide-log-out",
+  //     onSelect: async () => {
+  //       open.value = false;
+  //       await signOut();
+  //       await navigateTo("/auth/login");
+  //     },
+  //   },
+  // ],
 ] satisfies NavigationMenuItem[][];
 
 const groups = computed(() => [

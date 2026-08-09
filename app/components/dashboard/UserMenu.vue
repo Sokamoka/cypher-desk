@@ -6,15 +6,19 @@ defineProps<{
 }>();
 
 const colorMode = useColorMode();
+const session = useSession();
 
-// const { user: session } = useUserSession();
-
-const user = ref({
-  name: "Benjamin Canac",
-  avatar: {
-    src: "https://github.com/benjamincanac.png",
-    alt: "Benjamin Canac",
-  },
+const user = computed(() => {
+  const sessionUser = session.value?.data?.user;
+  const name = sessionUser?.name?.trim();
+  const image = sessionUser?.image?.trim();
+  return {
+    name,
+    avatar: {
+      src: image,
+      alt: name,
+    },
+  };
 });
 
 const items = computed<DropdownMenuItem[][]>(() => [
@@ -73,62 +77,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
       ],
     },
   ],
-  // [
-  //   {
-  //     label: "Templates",
-  //     icon: "i-lucide-layout-template",
-  //     children: [
-  //       {
-  //         label: "Starter",
-  //         to: "https://starter-template.nuxt.dev/",
-  //       },
-  //       {
-  //         label: "Landing",
-  //         to: "https://landing-template.nuxt.dev/",
-  //       },
-  //       {
-  //         label: "Docs",
-  //         to: "https://docs-template.nuxt.dev/",
-  //       },
-  //       {
-  //         label: "SaaS",
-  //         to: "https://saas-template.nuxt.dev/",
-  //       },
-  //       {
-  //         label: "Dashboard",
-  //         to: "https://dashboard-template.nuxt.dev/",
-  //         color: "primary",
-  //         checked: true,
-  //         type: "checkbox",
-  //       },
-  //       {
-  //         label: "Chat",
-  //         to: "https://chat-template.nuxt.dev/",
-  //       },
-  //       {
-  //         label: "Portfolio",
-  //         to: "https://portfolio-template.nuxt.dev/",
-  //       },
-  //       {
-  //         label: "Changelog",
-  //         to: "https://changelog-template.nuxt.dev/",
-  //       },
-  //     ],
-  //   },
-  // ],
   [
-    // {
-    //   label: "Documentation",
-    //   icon: "i-lucide-book-open",
-    //   to: "https://ui.nuxt.com/docs/getting-started/installation/nuxt",
-    //   target: "_blank",
-    // },
-    // {
-    //   label: "GitHub repository",
-    //   icon: "i-simple-icons-github",
-    //   to: "https://github.com/nuxt-ui-templates/dashboard",
-    //   target: "_blank",
-    // },
     {
       label: "Sign out",
       icon: "i-lucide-log-out",
@@ -142,7 +91,6 @@ const items = computed<DropdownMenuItem[][]>(() => [
 </script>
 
 <template>
-  <!-- <pre>{{ session }}</pre> -->
   <UDropdownMenu
     :items="items"
     :content="{ align: 'center', collisionPadding: 12 }"
