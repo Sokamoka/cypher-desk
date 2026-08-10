@@ -23,28 +23,18 @@ interface DashboardEvent {
   createdAt: string;
 }
 
-interface Registration {
-  id: number;
-  attendeeName: string;
-  attendeeEmail: string;
-  createdAt: string;
-  categories: EventCategory[];
-}
-
 const { data, pending, error } = await useFetch<{
   success: boolean;
   event: DashboardEvent;
   categories: EventCategory[];
-  registrations: Registration[];
-  registrationCount: number;
 }>(() => `/api/events/${eventId.value}`);
 
 const eventData = computed(() => data.value?.event ?? null);
-const registrations = computed(() => data.value?.registrations ?? []);
+const categories = computed(() => data.value?.categories ?? []);
 
 useSeoMeta({
   title: () =>
-    eventData.value ? `${eventData.value.title} — Registrants` : "Event",
+    eventData.value ? `${eventData.value.title} — Categories` : "Event",
 });
 
 function formatDate(value: string) {
@@ -55,11 +45,8 @@ function publicUrl(slug: string) {
   return `/e/${slug}`;
 }
 
-const columns: TableColumn<Registration>[] = [
-  { accessorKey: "attendeeName", header: "Name" },
-  { accessorKey: "attendeeEmail", header: "Email" },
-  { id: "categories", header: "Categories" },
-  { accessorKey: "createdAt", header: "Registered At" },
+const columns: TableColumn<EventCategory>[] = [
+  { accessorKey: "name", header: "Category" },
   { id: "actions", header: "" },
 ];
 </script>
@@ -125,42 +112,19 @@ const columns: TableColumn<Registration>[] = [
               <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold">Categories</h2>
                 <UBadge color="primary" variant="soft">
-                  {{ registrations.length }} registrations
+                  {{ categories.length }} categories
                 </UBadge>
               </div>
             </template>
 
-            <div v-if="registrations.length === 0" class="text-center py-12">
+            <div v-if="categories.length === 0" class="text-center py-12">
               <p class="text-muted">
-                No one has registered for this event yet.
+                No categories added for this event yet.
               </p>
             </div>
 
-            <UTable v-else :data="registrations" :columns="columns">
-              <template #categories-cell="{ row }">
-                <div
-                  v-if="row.original.categories.length > 0"
-                  class="flex flex-wrap gap-1"
-                >
-                  <UBadge
-                    v-for="category in row.original.categories"
-                    :key="category.id"
-                    variant="subtle"
-                    color="neutral"
-                  >
-                    {{ category.name }}
-                  </UBadge>
-                </div>
-                <span v-else class="text-muted text-sm">—</span>
-              </template>
-
-              <template #createdAt-cell="{ row }">
-                <span class="text-sm text-muted">
-                  {{ formatDate(row.original.createdAt) }}
-                </span>
-              </template>
-
-              <template #actions-cell="{ row }">
+            <UTable v-else :data="categories" :columns="columns">
+              <template #actions-cell>
                 <div class="flex gap-2">
                   <UButton
                     icon="i-lucide-pencil"
