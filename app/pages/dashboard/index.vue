@@ -294,6 +294,15 @@ async function onUpdateEvent(
                 >
                   Edit
                 </UButton>
+                <UButton
+                  icon="i-lucide-pencil"
+                  variant="ghost"
+                  color="neutral"
+                  size="sm"
+                  :to="`/dashboard/event/${row.original.id}`"
+                >
+                  Manage
+                </UButton>
               </div>
             </template>
           </UTable>

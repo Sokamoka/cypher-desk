@@ -5,6 +5,8 @@ import type { VariantType } from "motion-v";
 const nuxtApp = useNuxtApp();
 const activeSection = ref<string>();
 
+const session = useSession();
+
 const items = computed(() => [
   {
     label: "Features",
@@ -77,6 +79,7 @@ const variants: Record<
 
     <template #right>
       <UButton
+        v-if="!Boolean(session.data?.user?.id)"
         label="Sign in"
         color="neutral"
         variant="ghost"
@@ -84,10 +87,11 @@ const variants: Record<
         to="/auth/login"
       />
       <UButton
-        label="Get started"
+        v-if="session.data?.user?.id"
+        label="Dashboard"
         color="neutral"
         class="hidden lg:flex"
-        to="https://ui.nuxt.com"
+        to="/dashboard"
         target="_blank"
       />
     </template>
@@ -159,9 +163,10 @@ const variants: Record<
           block
         />
         <UButton
-          label="Get started"
+          v-if="session.data?.user?.id"
+          label="Dashboard"
           block
-          to="https://ui.nuxt.com"
+          to="/dashboard"
           target="_blank"
         />
       </div>
