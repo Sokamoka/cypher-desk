@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DropdownMenuItem, TableColumn } from "@nuxt/ui";
+import type { TableColumn } from "@nuxt/ui";
 
 definePageMeta({
   layout: "dashboard",
@@ -34,9 +34,7 @@ interface Registration {
 
 interface Boards {
   id: number;
-  name: string;
-  type: string;
-  createdAt: string;
+  attendeeName: string;
 }
 
 const { data, pending, error } = await useFetch<{
@@ -49,16 +47,12 @@ const { data, pending, error } = await useFetch<{
 
 const tableDataMock: Boards[] = [
   {
-    id: 0,
-    name: "Preselection 1x1 B-Girl",
-    type: "Preselection",
-    createdAt: new Date().toString(),
+    id: 5,
+    attendeeName: "Moka",
   },
   {
-    id: 1,
-    name: "1x1 B-Girl Top 8",
-    type: "Bracket",
-    createdAt: new Date().toString(),
+    id: 7,
+    attendeeName: "Bgirl Moka",
   },
 ];
 
@@ -69,22 +63,6 @@ useSeoMeta({
   title: () =>
     eventData.value ? `${eventData.value.title} — Registrants` : "Event",
 });
-
-const boardItems = ref<DropdownMenuItem[]>([
-  {
-    label: "Preselection / Robin Round",
-    icon: "i-lucide-user",
-    onClick: () => (openBoardsModal.value = true),
-  },
-  {
-    label: "Bracket",
-    icon: "i-lucide-credit-card",
-  },
-  // {
-  //   label: "Settings",
-  //   icon: "i-lucide-cog",
-  // },
-]);
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString();
@@ -106,27 +84,13 @@ const columns: TableColumn<Boards>[] = [
 <template>
   <UDashboardPanel id="dashboard-event-detail">
     <template #header>
-      <UDashboardNavbar title="Phases">
+      <UDashboardNavbar title="Preselection 1x1 BGirl">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
 
         <template #right>
-          <UDropdownMenu
-            :items="boardItems"
-            :content="{
-              align: 'end',
-              side: 'bottom',
-              sideOffset: 8,
-            }"
-            :ui="{
-              content: 'w-48',
-            }"
-          >
-            <UButton icon="i-lucide-plus" variant="soft" color="success">
-              Add board
-            </UButton>
-          </UDropdownMenu>
+          <UButton icon="i-lucide-play" color="success" label="Start phase" />
         </template>
       </UDashboardNavbar>
     </template>
@@ -169,7 +133,7 @@ const columns: TableColumn<Boards>[] = [
           <UCard>
             <template #header>
               <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold">Boards</h2>
+                <h2 class="text-lg font-semibold">Participants</h2>
                 <UBadge color="primary" variant="soft">
                   {{ registrations.length }} board
                 </UBadge>
@@ -182,72 +146,39 @@ const columns: TableColumn<Boards>[] = [
               </p>
             </div>
 
-            <UTable v-else :data="tableDataMock" :columns="columns">
-              <!-- <template #categories-cell="{ row }">
-                <div
-                  v-if="row.original.categories.length > 0"
-                  class="flex flex-wrap gap-1"
+            <div class="space-y-5">
+              <template
+                v-for="participant in tableDataMock"
+                :key="participant.id"
+              >
+                <UPageCard
+                  variant="subtle"
+                  orientation="horizontal"
+                  :title="participant.attendeeName"
                 >
-                  <UBadge
-                    v-for="category in row.original.categories"
-                    :key="category.id"
-                    variant="subtle"
-                    color="neutral"
-                  >
-                    {{ category.name }}
-                  </UBadge>
-                </div>
-                <span v-else class="text-muted text-sm">—</span>
-              </template> -->
-
-              <!-- <template #createdAt-cell="{ row }">
-                <span class="text-sm text-muted">
-                  {{ formatDate(row.original.createdAt) }}
-                </span>
-              </template> -->
-
-              <template #actions-cell="{ row }">
-                <div class="flex gap-2">
-                  <UButton
-                    icon="i-lucide-pencil"
-                    variant="ghost"
-                    color="neutral"
-                    size="sm"
-                  >
-                    Edit
-                  </UButton>
-                </div>
+                  <div class="flex gap-3">
+                    <USlider
+                      :step="1"
+                      :max="10"
+                      :default-value="5"
+                      :tooltip="{
+                        content: { side: 'top' },
+                        ui: { content: 'text-xl' },
+                      }"
+                    />
+                    <UButton
+                      label="Save"
+                      icon="i-lucide-plus"
+                      variant="soft"
+                      color="success"
+                    />
+                  </div>
+                </UPageCard>
               </template>
-            </UTable>
+            </div>
           </UCard>
         </template>
       </div>
-
-      <!-- Board Modal -->
-      <UModal
-        v-model:open="openBoardsModal"
-        title="Preselection"
-        :ui="{ footer: 'justify-end' }"
-      >
-        <template #body>
-          <DashboardPreselectionForm id="preselection" />
-        </template>
-
-        <template #footer="{ close }">
-          <UButton
-            label="Cancel"
-            color="neutral"
-            variant="outline"
-            @click="close"
-          />
-          <UButton
-            form="preselection"
-            type="submit"
-            label="Submit"
-            color="neutral"
-          />
-        </template>
-      </UModal>
     </template>
   </UDashboardPanel>
 </template>
