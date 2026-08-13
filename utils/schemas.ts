@@ -70,3 +70,26 @@ export const CreateEventRegistrationSchema = v.object({
 export type CreateEventRegistration = v.InferOutput<
   typeof CreateEventRegistrationSchema
 >;
+
+export const CreatePreselectionPhaseSchema = v.object({
+  categoryId: v.pipe(v.string(), v.minLength(1, "Category is required")),
+  name: v.pipe(
+    v.string(),
+    v.minLength(1, "Phase name is required"),
+    v.maxLength(100, "Phase name must be at most 100 characters"),
+  ),
+  numberOfCypher: v.pipe(
+    v.number(),
+    v.integer("Number of cypher must be an integer"),
+    v.minValue(1, "Number of cypher must be at least 1"),
+  ),
+  groupSize: v.pipe(
+    v.number(),
+    v.integer("Group size must be an integer"),
+    v.minValue(1, "Group size must be at least 1"),
+  ),
+});
+
+export type CreatePreselectionPhase = v.InferOutput<
+  typeof CreatePreselectionPhaseSchema
+>;

@@ -118,20 +118,18 @@ const columns: TableColumn<EventCategory>[] = [
             </template>
 
             <div v-if="categories.length === 0" class="text-center py-12">
-              <p class="text-muted">
-                No categories added for this event yet.
-              </p>
+              <p class="text-muted">No categories added for this event yet.</p>
             </div>
 
             <UTable v-else :data="categories" :columns="columns">
-              <template #actions-cell>
+              <template #actions-cell="{ row }">
                 <div class="flex gap-2">
                   <UButton
                     icon="i-lucide-pencil"
                     variant="ghost"
                     color="neutral"
                     size="sm"
-                    :to="`/dashboard/event/category/${eventId}`"
+                    :to="`/dashboard/event/category/${row.original.id}`"
                   >
                     Manage
                   </UButton>

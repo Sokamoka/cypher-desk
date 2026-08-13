@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260804.1",
+    "@iconify-json/lucide": "^1.2.123",
     "@libsql/client": "^0.17.4",
     "drizzle-kit": "^0.31.10",
     "typescript": "^6.0.3",

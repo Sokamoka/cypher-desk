@@ -136,6 +136,30 @@ export const registrationCategories = sqliteTable(
   }),
 );
 
+// Phases that belong to an event category. `type` is extensible for
+// additional implementations (e.g. `bracket`) while still allowing
+// type-specific detail tables like `preselection_phases`.
+export const categoryPhases = sqliteTable('category_phases', {
+  id: text('id').primaryKey(),
+  categoryId: text('category_id')
+    .notNull()
+    .references(() => eventCategories.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(),
+  name: text('name').notNull(),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+// One-to-one details for `preselection` phases.
+export const preselectionPhases = sqliteTable('preselection_phases', {
+  phaseId: text('phase_id')
+    .primaryKey()
+    .references(() => categoryPhases.id, { onDelete: 'cascade' }),
+  numberOfCypher: integer('number_of_cypher').notNull(),
+  groupSize: integer('group_size').notNull(),
+});
+
 // ---------------------------------------------------------------------------
 // Inferred types
 // ---------------------------------------------------------------------------
@@ -163,3 +187,9 @@ export type NewEventCategory = typeof eventCategories.$inferInsert;
 
 export type RegistrationCategory = typeof registrationCategories.$inferSelect;
 export type NewRegistrationCategory = typeof registrationCategories.$inferInsert;
+
+export type CategoryPhase = typeof categoryPhases.$inferSelect;
+export type NewCategoryPhase = typeof categoryPhases.$inferInsert;
+
+export type PreselectionPhase = typeof preselectionPhases.$inferSelect;
+export type NewPreselectionPhase = typeof preselectionPhases.$inferInsert;

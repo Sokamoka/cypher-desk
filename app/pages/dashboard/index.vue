@@ -243,7 +243,7 @@ async function onUpdateEvent(
         <UCard v-else>
           <template #header>
             <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold">Your Events</h2>
+              <h2 class="text-lg font-semibold">Events</h2>
               <UBadge color="primary" variant="soft">
                 {{ events.length }} events
               </UBadge>

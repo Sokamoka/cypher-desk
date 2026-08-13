@@ -36,6 +36,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^5.20260804.1
         version: 5.20260809.1
+      '@iconify-json/lucide':
+        specifier: ^1.2.123
+        version: 1.2.123
       '@libsql/client':
         specifier: ^0.17.4
         version: 0.17.4
@@ -1146,6 +1149,9 @@ packages:
 
   '@floating-ui/vue@1.1.11':
     resolution: {integrity: sha512-HzHKCNVxnGS35r9fCHBc3+uCnjw9IWIlCPL683cGgM9Kgj2BiAl8x1mS7vtvP6F9S/e/q4O6MApwSHj8hNLGfw==}
+
+  '@iconify-json/lucide@1.2.123':
+    resolution: {integrity: sha512-0CozmpKXEOEEhltrfT2zt+/t1hez67Y+hM2VJWoIcBKdBrb83VYuKf+b5A0QU9HfQm+RNn2GjFWlTOwi+Ss6IA==}
 
   '@iconify/collections@1.0.721':
     resolution: {integrity: sha512-v6mwP1B2ewhImPrQmSMnwyFrtKVXrbWlrr2oOrUSEPrs9ArsK2sIq1Of6fXBzfJVLY25WYYhkjOSRnAKG7NDog==}
@@ -3625,7 +3631,6 @@ packages:
 
   libsql@0.5.29:
     resolution: {integrity: sha512-8lMP8iMgiBzzoNbAPQ59qdVcj6UaE/Vnm+fiwX4doX4Narook0a4GPKWBEv+CR8a1OwbfkgL18uBfBjWdF0Fzg==}
-    cpu: [x64, arm64, wasm32, arm]
     os: [darwin, linux, win32]
 
   lightningcss-android-arm64@1.32.0:
@@ -6054,6 +6059,10 @@ snapshots:
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
+
+  '@iconify-json/lucide@1.2.123':
+    dependencies:
+      '@iconify/types': 2.0.0
 
   '@iconify/collections@1.0.721':
     dependencies:
