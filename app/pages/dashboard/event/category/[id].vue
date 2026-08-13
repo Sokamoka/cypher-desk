@@ -84,10 +84,6 @@ const boardItems = ref<DropdownMenuItem[]>([
     label: "Bracket",
     icon: "i-lucide-credit-card",
   },
-  // {
-  //   label: "Settings",
-  //   icon: "i-lucide-cog",
-  // },
 ]);
 
 useSeoMeta({
