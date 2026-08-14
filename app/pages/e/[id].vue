@@ -10,12 +10,26 @@ definePageMeta({
   layout: "default",
 });
 
+const items = [
+  {
+    label: "Account",
+    icon: "i-lucide-user",
+    slot: "account",
+  },
+  {
+    label: "Password",
+    icon: "i-lucide-lock",
+    slot: "password",
+  },
+];
+
 const route = useRoute();
 const toast = useToast();
 
 interface EventCategory {
   id: string;
   name: string;
+  attendees: string[];
 }
 
 interface PublicEvent {
@@ -27,7 +41,7 @@ interface PublicEvent {
   categories: EventCategory[];
 }
 
-const { data, pending, error } = await useFetch<{
+const { data, pending, error, refresh } = await useFetch<{
   success: boolean;
   event: PublicEvent;
 }>(() => `/api/public/events/${route.params.id}`);
@@ -84,6 +98,7 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
 
     registered.value = true;
     toast.add({ title: "Registration submitted", color: "success" });
+    await refresh();
   } catch (err: any) {
     toast.add({
       title: "Registration failed",
@@ -115,6 +130,11 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
           {{ eventData.description }}
         </p>
       </div>
+
+      <UTabs :items="items" variant="link">
+        <template #account> A </template>
+        <template #password> B </template>
+      </UTabs>
 
       <UCard>
         <template #header>
@@ -155,7 +175,10 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
             <UCheckboxGroup
               v-model="formState.categoryIds"
               :items="
-                eventData.categories.map((c) => ({ label: c.name, value: c.id }))
+                eventData.categories.map((c) => ({
+                  label: c.name,
+                  value: c.id,
+                }))
               "
             />
           </UFormField>
@@ -164,6 +187,32 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
             Register
           </UButton>
         </UForm>
+      </UCard>
+
+      <UCard v-if="hasCategories">
+        <template #header>
+          <h2 class="text-lg font-semibold">Registered attendees</h2>
+        </template>
+
+        <div class="space-y-6">
+          <div v-for="category in eventData.categories" :key="category.id">
+            <h3 class="font-medium">
+              {{ category.name }}
+              <span class="text-muted font-normal"
+                >({{ category.attendees.length }})</span
+              >
+            </h3>
+
+            <p v-if="category.attendees.length === 0" class="text-muted mt-1">
+              No attendees yet.
+            </p>
+            <ul v-else class="mt-1 list-disc list-inside">
+              <li v-for="(name, index) in category.attendees" :key="index">
+                {{ name }}
+              </li>
+            </ul>
+          </div>
+        </div>
       </UCard>
     </div>
   </UContainer>

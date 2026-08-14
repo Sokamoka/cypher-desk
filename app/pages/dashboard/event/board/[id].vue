@@ -1,19 +1,11 @@
 <script setup lang="ts">
-import type { TableColumn } from "@nuxt/ui";
-
 definePageMeta({
   layout: "dashboard",
   middleware: "auth",
 });
 
-const openBoardsModal = ref(false);
 const route = useRoute();
-const eventId = computed(() => route.params.id as string);
-
-interface EventCategory {
-  id: string;
-  name: string;
-}
+const phaseId = computed(() => route.params.id as string);
 
 interface DashboardEvent {
   id: string;
@@ -24,67 +16,60 @@ interface DashboardEvent {
   createdAt: string;
 }
 
+interface PhaseCategory {
+  id: string;
+  name: string;
+}
+
+interface Phase {
+  id: string;
+  type: string;
+  name: string;
+  createdAt: string;
+  preselection: {
+    numberOfCypher: number;
+    groupSize: number;
+  } | null;
+}
+
 interface Registration {
   id: number;
   attendeeName: string;
   attendeeEmail: string;
   createdAt: string;
-  categories: EventCategory[];
-}
-
-interface Boards {
-  id: number;
-  attendeeName: string;
 }
 
 const { data, pending, error } = await useFetch<{
   success: boolean;
   event: DashboardEvent;
-  categories: EventCategory[];
+  category: PhaseCategory;
+  phase: Phase;
   registrations: Registration[];
-  registrationCount: number;
-}>(() => `/api/events/${eventId.value}`);
-
-const tableDataMock: Boards[] = [
-  {
-    id: 5,
-    attendeeName: "Moka",
-  },
-  {
-    id: 7,
-    attendeeName: "Bgirl Moka",
-  },
-];
+}>(() => `/api/phases/${phaseId.value}`);
 
 const eventData = computed(() => data.value?.event ?? null);
+const categoryData = computed(() => data.value?.category ?? null);
+const phaseData = computed(() => data.value?.phase ?? null);
 const registrations = computed(() => data.value?.registrations ?? []);
 
 useSeoMeta({
   title: () =>
-    eventData.value ? `${eventData.value.title} — Registrants` : "Event",
+    categoryData.value && phaseData.value
+      ? `${categoryData.value.name} — ${phaseData.value.name}`
+      : "Board",
 });
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleString();
-}
-
-function publicUrl(slug: string) {
-  return `/e/${slug}`;
-}
-
-const columns: TableColumn<Boards>[] = [
-  { accessorKey: "name", header: "Name" },
-  { accessorKey: "type", header: "Board Type" },
-  // { id: "categories", header: "Categories" },
-  { accessorKey: "createdAt", header: "Created At" },
-  { id: "actions", header: "" },
-];
 </script>
 
 <template>
   <UDashboardPanel id="dashboard-event-detail">
     <template #header>
-      <UDashboardNavbar title="Preselection 1x1 BGirl">
+      <UDashboardNavbar
+        :title="
+          categoryData && phaseData
+            ? `${categoryData.name} — ${phaseData.name}`
+            : 'Board'
+        "
+      >
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -103,11 +88,11 @@ const columns: TableColumn<Boards>[] = [
         </div>
 
         <div
-          v-else-if="error || !eventData"
+          v-else-if="error || !eventData || !categoryData || !phaseData"
           class="bg-error/10 border border-error/30 rounded-lg p-4"
         >
           <p class="text-error">
-            Failed to load this event. Please try again later.
+            Failed to load this board. Please try again later.
           </p>
         </div>
 
@@ -117,17 +102,12 @@ const columns: TableColumn<Boards>[] = [
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-lg font-semibold">{{ eventData.title }}</h2>
-                  <!-- <p class="text-sm text-muted">
-                    {{ formatDate(eventData.date) }}
-                  </p> -->
+                  <p class="text-sm text-muted">
+                    {{ categoryData.name }} — {{ phaseData.name }}
+                  </p>
                 </div>
-                <!-- <ULink :to="publicUrl(eventData.slug)" target="_blank">
-                  {{ publicUrl(eventData.slug) }}
-                </ULink> -->
               </div>
             </template>
-
-            <!-- <p v-if="eventData.description">{{ eventData.description }}</p> -->
           </UCard>
 
           <UCard>
@@ -142,13 +122,13 @@ const columns: TableColumn<Boards>[] = [
 
             <div v-if="registrations.length === 0" class="text-center py-12">
               <p class="text-muted">
-                No one has registered for this event yet.
+                No one has registered for this category yet.
               </p>
             </div>
 
             <div class="space-y-5">
               <template
-                v-for="participant in tableDataMock"
+                v-for="participant in registrations"
                 :key="participant.id"
               >
                 <UPageCard

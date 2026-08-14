@@ -49,7 +49,15 @@ const {
 const events = computed(() => eventsData.value?.events ?? []);
 
 const columns: TableColumn<DashboardEvent>[] = [
-  { accessorKey: "title", header: "Title" },
+  {
+    accessorKey: "title",
+    header: "Title",
+    meta: {
+      class: {
+        td: "text-lg font-bold",
+      },
+    },
+  },
   { accessorKey: "date", header: "Date" },
   { accessorKey: "slug", header: "Public link" },
   { accessorKey: "createdAt", header: "Created" },

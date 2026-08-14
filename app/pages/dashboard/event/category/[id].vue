@@ -108,6 +108,7 @@ const columns: TableColumn<PhaseTableRow>[] = [
   { accessorKey: "type", header: "Type" },
   { accessorKey: "participants", header: "Category Registrations" },
   { accessorKey: "createdAt", header: "Created At" },
+  { id: "actions", header: "" },
 ];
 </script>
 
@@ -189,6 +190,18 @@ const columns: TableColumn<PhaseTableRow>[] = [
                 <span class="text-sm text-muted">
                   {{ formatDate(row.original.createdAt) }}
                 </span>
+              </template>
+
+              <template #actions-cell="{ row }">
+                <UButton
+                  icon="i-lucide-arrow-right"
+                  variant="ghost"
+                  color="neutral"
+                  size="sm"
+                  :to="`/dashboard/event/board/${row.original.id}`"
+                >
+                  Manage board
+                </UButton>
               </template>
             </UTable>
           </UCard>

@@ -43,7 +43,8 @@ const eventData = computed(() => data.value?.event ?? null);
 const registrations = computed(() => data.value?.registrations ?? []);
 
 useSeoMeta({
-  title: () => (eventData.value ? `${eventData.value.title} — Registrants` : "Event"),
+  title: () =>
+    eventData.value ? `${eventData.value.title} — Registrants` : "Event",
 });
 
 function formatDate(value: string) {
@@ -55,7 +56,15 @@ function publicUrl(slug: string) {
 }
 
 const columns: TableColumn<Registration>[] = [
-  { accessorKey: "attendeeName", header: "Name" },
+  {
+    accessorKey: "attendeeName",
+    header: "Name",
+    meta: {
+      class: {
+        td: "font-bold",
+      },
+    },
+  },
   { accessorKey: "attendeeEmail", header: "Email" },
   { id: "categories", header: "Categories" },
   { accessorKey: "createdAt", header: "Registered At" },
@@ -94,7 +103,9 @@ const columns: TableColumn<Registration>[] = [
           v-else-if="error || !eventData"
           class="bg-error/10 border border-error/30 rounded-lg p-4"
         >
-          <p class="text-error">Failed to load this event. Please try again later.</p>
+          <p class="text-error">
+            Failed to load this event. Please try again later.
+          </p>
         </div>
 
         <template v-else>
@@ -103,7 +114,9 @@ const columns: TableColumn<Registration>[] = [
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-lg font-semibold">{{ eventData.title }}</h2>
-                  <p class="text-sm text-muted">{{ formatDate(eventData.date) }}</p>
+                  <p class="text-sm text-muted">
+                    {{ formatDate(eventData.date) }}
+                  </p>
                 </div>
                 <ULink :to="publicUrl(eventData.slug)" target="_blank">
                   {{ publicUrl(eventData.slug) }}
@@ -125,7 +138,9 @@ const columns: TableColumn<Registration>[] = [
             </template>
 
             <div v-if="registrations.length === 0" class="text-center py-12">
-              <p class="text-muted">No one has registered for this event yet.</p>
+              <p class="text-muted">
+                No one has registered for this event yet.
+              </p>
             </div>
 
             <UTable v-else :data="registrations" :columns="columns">
