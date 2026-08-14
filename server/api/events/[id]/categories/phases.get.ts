@@ -77,8 +77,8 @@ export default defineEventHandler(async (event) => {
           .select({
             categoryId: registrationCategories.categoryId,
             id: eventRegistrations.id,
-            attendeeName: eventRegistrations.attendeeName,
-            attendeeEmail: eventRegistrations.attendeeEmail,
+            participantName: eventRegistrations.participantName,
+            participantEmail: eventRegistrations.participantEmail,
             createdAt: eventRegistrations.createdAt,
           })
           .from(registrationCategories)
@@ -96,14 +96,14 @@ export default defineEventHandler(async (event) => {
 
   const registrationsByCategory = new Map<
     string,
-    { id: number; attendeeName: string; attendeeEmail: string; createdAt: string }[]
+    { id: number; participantName: string; participantEmail: string; createdAt: string }[]
   >();
   for (const registration of registrationRows) {
     const list = registrationsByCategory.get(registration.categoryId) ?? [];
     list.push({
       id: registration.id,
-      attendeeName: registration.attendeeName,
-      attendeeEmail: registration.attendeeEmail,
+      participantName: registration.participantName,
+      participantEmail: registration.participantEmail,
       createdAt: registration.createdAt,
     });
     registrationsByCategory.set(registration.categoryId, list);
@@ -122,8 +122,8 @@ export default defineEventHandler(async (event) => {
             groupSize: number;
             categoryRegistrations: {
               id: number;
-              attendeeName: string;
-              attendeeEmail: string;
+              participantName: string;
+              participantEmail: string;
               createdAt: string;
             }[];
           }

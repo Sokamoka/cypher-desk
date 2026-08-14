@@ -253,7 +253,7 @@ This starts:
 
 2. **Public registration:**
    - Open the event's public link from another browser/incognito session (no login required)
-   - Fill in the registration form (`attendeeName`, `attendeeEmail`)
+   - Fill in the registration form (`participantName`, `participantEmail`)
 
 3. **Strict user isolation:**
    - Sign up as a second user — their `/dashboard` only shows their own events
@@ -357,8 +357,8 @@ CREATE TABLE events (
 CREATE TABLE event_registrations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  attendee_name TEXT NOT NULL,
-  attendee_email TEXT NOT NULL,
+  participant_name TEXT NOT NULL,
+  participant_email TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
@@ -444,7 +444,7 @@ Response:
 }
 ```
 
-Note: the public payload never includes `userId` or registration/attendee data.
+Note: the public payload never includes `userId` or registration/participant data.
 
 #### Submit Registration
 
@@ -453,8 +453,8 @@ POST /api/public/events/{id-or-slug}/register
 
 Request:
 {
-  "attendeeName": "John Doe",
-  "attendeeEmail": "john@example.com"
+  "participantName": "John Doe",
+  "participantEmail": "john@example.com"
 }
 
 Response:
@@ -464,7 +464,7 @@ Response:
 }
 ```
 
-Note: the response never echoes back `attendeeEmail` or any other attendee's data.
+Note: the response never echoes back `participantEmail` or any other participant's data.
 
 ## Troubleshooting
 
@@ -511,7 +511,7 @@ All code strictly follows English conventions:
 
 ### Important Security Notes
 
-1. **Email Privacy:** Attendee emails are NEVER returned in public API responses (e.g. the public event details endpoint, or the registration confirmation response)
+1. **Email Privacy:** Participant emails are NEVER returned in public API responses (e.g. the public event details endpoint, or the registration confirmation response)
 2. **Strict User Isolation:** Every `/api/events/*` handler validates the Better Auth session and scopes reads/writes to `events.userId === session.user.id`; cross-user access returns `404`, not `403`
 3. **Validation:** All inputs are validated server-side using Valibot schemas
 4. **Database:** D1 is SQLite - ensure database file is not exposed in version control

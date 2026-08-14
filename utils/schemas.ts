@@ -56,14 +56,14 @@ export const UpdateEventSchema = v.object({
 export type UpdateEvent = v.InferOutput<typeof UpdateEventSchema>;
 
 // Public event registration schema (no auth). `categoryIds` lets an
-// attendee register for one or more categories of the event.
+// participant register for one or more categories of the event.
 export const CreateEventRegistrationSchema = v.object({
-  attendeeName: v.pipe(
+  participantName: v.pipe(
     v.string(),
     v.minLength(1, "Name is required"),
     v.maxLength(100, "Name must be at most 100 characters"),
   ),
-  attendeeEmail: v.pipe(v.string(), v.email("Invalid email address")),
+  participantEmail: v.pipe(v.string(), v.email("Invalid email address")),
   categoryIds: v.optional(v.array(v.string()), []),
 });
 

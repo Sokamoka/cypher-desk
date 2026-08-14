@@ -25,8 +25,8 @@ interface CategoryPhase {
     groupSize: number;
     categoryRegistrations: {
       id: number;
-      attendeeName: string;
-      attendeeEmail: string;
+      participantName: string;
+      participantEmail: string;
       createdAt: string;
     }[];
   } | null;

@@ -34,8 +34,8 @@ interface Phase {
 
 interface Registration {
   id: number;
-  attendeeName: string;
-  attendeeEmail: string;
+  participantName: string;
+  participantEmail: string;
   createdAt: string;
 }
 
@@ -134,7 +134,7 @@ useSeoMeta({
                 <UPageCard
                   variant="subtle"
                   orientation="horizontal"
-                  :title="participant.attendeeName"
+                  :title="participant.participantName"
                 >
                   <div class="flex gap-3">
                     <USlider

@@ -29,7 +29,7 @@ const toast = useToast();
 interface EventCategory {
   id: string;
   name: string;
-  attendees: string[];
+  participants: string[];
 }
 
 interface PublicEvent {
@@ -64,8 +64,8 @@ const registered = ref(false);
 const submitting = ref(false);
 
 const formState = reactive({
-  attendeeName: "",
-  attendeeEmail: "",
+  participantName: "",
+  participantEmail: "",
   categoryIds: [] as string[],
 });
 
@@ -154,13 +154,13 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
           class="space-y-4"
           @submit="onRegister"
         >
-          <UFormField label="Name" name="attendeeName" required>
-            <UInput v-model="formState.attendeeName" placeholder="Your name" />
+          <UFormField label="Name" name="participantName" required>
+            <UInput v-model="formState.participantName" placeholder="Your name" />
           </UFormField>
 
-          <UFormField label="Email" name="attendeeEmail" required>
+          <UFormField label="Email" name="participantEmail" required>
             <UInput
-              v-model="formState.attendeeEmail"
+              v-model="formState.participantEmail"
               type="email"
               placeholder="you@example.com"
             />
@@ -191,7 +191,7 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
 
       <UCard v-if="hasCategories">
         <template #header>
-          <h2 class="text-lg font-semibold">Registered attendees</h2>
+          <h2 class="text-lg font-semibold">Registered participants</h2>
         </template>
 
         <div class="space-y-6">
@@ -199,15 +199,15 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
             <h3 class="font-medium">
               {{ category.name }}
               <span class="text-muted font-normal"
-                >({{ category.attendees.length }})</span
+                >({{ category.participants.length }})</span
               >
             </h3>
 
-            <p v-if="category.attendees.length === 0" class="text-muted mt-1">
-              No attendees yet.
+            <p v-if="category.participants.length === 0" class="text-muted mt-1">
+              No participants yet.
             </p>
             <ul v-else class="mt-1 list-disc list-inside">
-              <li v-for="(name, index) in category.attendees" :key="index">
+              <li v-for="(name, index) in category.participants" :key="index">
                 {{ name }}
               </li>
             </ul>

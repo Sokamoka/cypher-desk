@@ -100,8 +100,8 @@ export const eventRegistrations = sqliteTable('event_registrations', {
   eventId: text('event_id')
     .notNull()
     .references(() => events.id, { onDelete: 'cascade' }),
-  attendeeName: text('attendee_name').notNull(),
-  attendeeEmail: text('attendee_email').notNull(),
+  participantName: text('participant_name').notNull(),
+  participantEmail: text('participant_email').notNull(),
   createdAt: text('created_at')
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),

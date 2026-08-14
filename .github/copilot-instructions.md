@@ -22,8 +22,8 @@
     `drizzleAdapter`) — do not hand-roll auth/user tables outside of this schema.
   - `events`: `id` (text, PK), `userId` (FK -> `user.id`, owner), `title`, `description`,
     `date`, `slug` (unique, public link), `createdAt`
-  - `eventRegistrations`: `id` (PK), `eventId` (FK -> `events.id`), `attendeeName`,
-    `attendeeEmail`, `createdAt`
+  - `eventRegistrations`: `id` (PK), `eventId` (FK -> `events.id`), `participantName`,
+    `participantEmail`, `createdAt`
 
 ## Authentication & Authorization (Better Auth + Cloudflare D1)
 
@@ -54,7 +54,7 @@
   is true, and falls back to `authClient.getSession()` on the client. Redirect to
   `/auth/login?redirect=<path>` when there is no session.
 - **Public endpoints (`server/api/public/**`):** Must NEVER require a session, and must NEVER
-  return `userId`, `attendeeEmail` for other attendees, or any other registrant's PII. Public
+  return `userId`, `participantEmail` for other participants, or any other registrant's PII. Public
   event lookups accept either the `id` or the `slug` (`where(or(eq(events.id, id),
   eq(events.slug, id)))`).
 - **Env vars:** `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` are read from
@@ -73,7 +73,7 @@
   - Use schemas with Nuxt UI `<UForm :schema="...">` on the frontend.
   - Validate server-side payload in `/server/api/...` using `v.parse()` or `v.safeParse()` on `readBody(event)`.
   - Infer Types using `v.InferOutput<typeof Schema>`.
-- **Security & Privacy:** Public endpoints must NEVER reveal `attendeeEmail` from the `eventRegistrations` table, or any other user's `userId`/events. See the "Authentication & Authorization" section above for the full session/ownership rules.
+- **Security & Privacy:** Public endpoints must NEVER reveal `participantEmail` from the `eventRegistrations` table, or any other user's `userId`/events. See the "Authentication & Authorization" section above for the full session/ownership rules.
 
 ## Documentation Standards
 

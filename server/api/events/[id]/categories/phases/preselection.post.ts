@@ -77,8 +77,8 @@ export default defineEventHandler(async (event) => {
     const categoryRegistrations = await db
       .select({
         id: eventRegistrations.id,
-        attendeeName: eventRegistrations.attendeeName,
-        attendeeEmail: eventRegistrations.attendeeEmail,
+        participantName: eventRegistrations.participantName,
+        participantEmail: eventRegistrations.participantEmail,
         createdAt: eventRegistrations.createdAt,
       })
       .from(registrationCategories)

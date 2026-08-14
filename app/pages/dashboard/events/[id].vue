@@ -25,8 +25,8 @@ interface DashboardEvent {
 
 interface Registration {
   id: number;
-  attendeeName: string;
-  attendeeEmail: string;
+  participantName: string;
+  participantEmail: string;
   createdAt: string;
   categories: EventCategory[];
 }
@@ -57,7 +57,7 @@ function publicUrl(slug: string) {
 
 const columns: TableColumn<Registration>[] = [
   {
-    accessorKey: "attendeeName",
+    accessorKey: "participantName",
     header: "Name",
     meta: {
       class: {
@@ -65,7 +65,7 @@ const columns: TableColumn<Registration>[] = [
       },
     },
   },
-  { accessorKey: "attendeeEmail", header: "Email" },
+  { accessorKey: "participantEmail", header: "Email" },
   { id: "categories", header: "Categories" },
   { accessorKey: "createdAt", header: "Registered At" },
 ];

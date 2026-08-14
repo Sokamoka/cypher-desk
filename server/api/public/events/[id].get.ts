@@ -43,12 +43,12 @@ export default defineEventHandler(async (event) => {
     .from(eventCategories)
     .where(eq(eventCategories.eventId, eventData.id));
 
-  // Only expose the attendee name per category — never leak `attendeeEmail`
+  // Only expose the participant name per category — never leak `participantEmail`
   // or any other registration field on public endpoints.
-  const categoryAttendeeRows = await db
+  const categoryParticipantRows = await db
     .select({
       categoryId: registrationCategories.categoryId,
-      attendeeName: eventRegistrations.attendeeName,
+      participantName: eventRegistrations.participantName,
     })
     .from(registrationCategories)
     .innerJoin(
@@ -57,22 +57,22 @@ export default defineEventHandler(async (event) => {
     )
     .where(eq(eventRegistrations.eventId, eventData.id));
 
-  const attendeesByCategory = new Map<string, string[]>();
-  for (const row of categoryAttendeeRows) {
-    const names = attendeesByCategory.get(row.categoryId) ?? [];
-    names.push(row.attendeeName);
-    attendeesByCategory.set(row.categoryId, names);
+  const participantsByCategory = new Map<string, string[]>();
+  for (const row of categoryParticipantRows) {
+    const names = participantsByCategory.get(row.categoryId) ?? [];
+    names.push(row.participantName);
+    participantsByCategory.set(row.categoryId, names);
   }
 
-  const categoriesWithAttendees = categories.map((category) => ({
+  const categoriesWithParticipants = categories.map((category) => ({
     ...category,
-    attendees: attendeesByCategory.get(category.id) ?? [],
+    participants: participantsByCategory.get(category.id) ?? [],
   }));
 
   // Public payload intentionally excludes `userId` and any registration/
-  // attendee data (never leak `attendeeEmail` on public endpoints).
+  // participant data (never leak `participantEmail` on public endpoints).
   return {
     success: true,
-    event: { ...eventData, categories: categoriesWithAttendees },
+    event: { ...eventData, categories: categoriesWithParticipants },
   };
 });

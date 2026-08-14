@@ -73,8 +73,8 @@ export default defineEventHandler(async (event) => {
       .insert(eventRegistrations)
       .values({
         eventId: eventData.id,
-        attendeeName: validatedData.attendeeName,
-        attendeeEmail: validatedData.attendeeEmail,
+        participantName: validatedData.participantName,
+        participantEmail: validatedData.participantEmail,
       })
       .returning({ id: eventRegistrations.id });
 
@@ -87,8 +87,8 @@ export default defineEventHandler(async (event) => {
       );
     }
 
-    // Response intentionally omits other attendees' data — never echo the
-    // registrations list or any other applicant's `attendeeEmail` here.
+    // Response intentionally omits other participants' data — never echo the
+    // registrations list or any other applicant's `participantEmail` here.
     return {
       success: true,
       message: "Registration submitted successfully",
