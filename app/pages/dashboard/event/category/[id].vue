@@ -193,15 +193,26 @@ const columns: TableColumn<PhaseTableRow>[] = [
               </template>
 
               <template #actions-cell="{ row }">
-                <UButton
-                  icon="i-lucide-arrow-right"
-                  variant="ghost"
-                  color="neutral"
-                  size="sm"
-                  :to="`/dashboard/event/board/${row.original.id}`"
-                >
-                  Manage board
-                </UButton>
+                <div class="flex items-center gap-2">
+                  <UButton
+                    icon="i-lucide-arrow-right"
+                    variant="ghost"
+                    color="neutral"
+                    size="sm"
+                    :to="`/dashboard/event/board/${row.original.id}`"
+                  >
+                    Manage board
+                  </UButton>
+                  <UButton
+                    icon="i-lucide-trophy"
+                    variant="ghost"
+                    color="neutral"
+                    size="sm"
+                    :to="`/dashboard/event/result/${row.original.id}`"
+                  >
+                    Results
+                  </UButton>
+                </div>
               </template>
             </UTable>
           </UCard>
