@@ -115,7 +115,7 @@ useSeoMeta({
               <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold">Participants</h2>
                 <UBadge color="primary" variant="soft">
-                  {{ registrations.length }} board
+                  {{ registrations.length }} participants
                 </UBadge>
               </div>
             </template>

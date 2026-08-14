@@ -12,18 +12,28 @@ definePageMeta({
 
 const items = [
   {
-    label: "Account",
+    label: "Live",
     icon: "i-lucide-user",
-    slot: "account",
+    value: "live",
+    slot: "live",
+    disabled: true,
   },
   {
-    label: "Password",
+    label: "Participants",
+    value: "participants",
+    icon: "i-lucide-user",
+    slot: "participants",
+  },
+  {
+    label: "Registration",
     icon: "i-lucide-lock",
-    slot: "password",
+    value: "registration",
+    slot: "registration",
   },
 ];
 
 const route = useRoute();
+const router = useRouter();
 const toast = useToast();
 
 interface EventCategory {
@@ -54,6 +64,20 @@ const hasCategories = computed(
 useSeoMeta({
   title: () => eventData.value?.title ?? "Event",
   description: () => eventData.value?.description ?? "Public event page",
+});
+
+const active = computed({
+  get() {
+    return (route.query.tab as string) || "registration";
+  },
+  set(tab) {
+    // Hash is specified here to prevent the page from scrolling to the top
+    router.push({
+      path: route.path,
+      query: { tab },
+      // hash: '#with-route-query'
+    });
+  },
 });
 
 function formatDate(value: string) {
@@ -126,94 +150,124 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
       <div>
         <h1 class="text-3xl font-bold">{{ eventData.title }}</h1>
         <p class="mt-2 text-muted">{{ formatDate(eventData.date) }}</p>
-        <p v-if="eventData.description" class="mt-4">
-          {{ eventData.description }}
-        </p>
+        <UCollapsible v-if="eventData.description">
+          <UButton
+            class="group"
+            label="Description"
+            variant="link"
+            trailing-icon="i-lucide-chevron-down"
+            :ui="{
+              base: 'px-0',
+              trailingIcon:
+                'group-data-[state=open]:rotate-180 transition-transform duration-200',
+            }"
+          />
+
+          <template #content>
+            <p>
+              {{ eventData.description }}
+            </p>
+          </template>
+        </UCollapsible>
       </div>
 
-      <UTabs :items="items" variant="link">
-        <template #account> A </template>
-        <template #password> B </template>
-      </UTabs>
+      <UTabs v-model="active" :items="items" variant="link">
+        <template #participants>
+          <UCard v-if="hasCategories" variant="soft">
+            <template #header>
+              <h2 class="text-lg font-semibold">Registered participants</h2>
+            </template>
 
-      <UCard>
-        <template #header>
-          <h2 class="text-lg font-semibold">Register for this event</h2>
+            <div class="space-y-6">
+              <div v-for="category in eventData.categories" :key="category.id">
+                <h3 class="font-medium">
+                  {{ category.name }}
+                  <span class="text-muted font-normal"
+                    >({{ category.participants.length }})</span
+                  >
+                </h3>
+
+                <p
+                  v-if="category.participants.length === 0"
+                  class="text-muted mt-1"
+                >
+                  No participants yet.
+                </p>
+                <ul v-else class="mt-1 flex gap-1">
+                  <li
+                    v-for="(name, index) in category.participants"
+                    :key="index"
+                  >
+                    <UBadge variant="subtle" size="lg">{{ name }}</UBadge>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </UCard>
         </template>
 
-        <div v-if="registered" class="text-center py-8">
-          <p class="text-highlighted font-medium">
-            Thanks! Your registration has been submitted.
-          </p>
-        </div>
+        <template #registration>
+          <UCard variant="soft">
+            <template #header>
+              <h2 class="text-lg font-semibold">Register for this event</h2>
+            </template>
 
-        <UForm
-          v-else
-          :schema="registrationSchema"
-          :state="formState"
-          class="space-y-4"
-          @submit="onRegister"
-        >
-          <UFormField label="Name" name="participantName" required>
-            <UInput v-model="formState.participantName" placeholder="Your name" />
-          </UFormField>
+            <div v-if="registered" class="text-center py-8">
+              <p class="text-highlighted font-medium">
+                Thanks! Your registration has been submitted.
+              </p>
+              <div class="space-x-3">
+                <UButton label="Participants" color="neutral" />
+                <UButton label="New Registration" @click="registered = false" />
+              </div>
+            </div>
 
-          <UFormField label="Email" name="participantEmail" required>
-            <UInput
-              v-model="formState.participantEmail"
-              type="email"
-              placeholder="you@example.com"
-            />
-          </UFormField>
+            <UForm
+              v-else
+              :schema="registrationSchema"
+              :state="formState"
+              class="space-y-4"
+              @submit="onRegister"
+            >
+              <UFormField label="Name" name="participantName" required>
+                <UInput
+                  v-model="formState.participantName"
+                  placeholder="Your name"
+                />
+              </UFormField>
 
-          <UFormField
-            v-if="hasCategories"
-            label="Categories"
-            name="categoryIds"
-            required
-          >
-            <UCheckboxGroup
-              v-model="formState.categoryIds"
-              :items="
-                eventData.categories.map((c) => ({
-                  label: c.name,
-                  value: c.id,
-                }))
-              "
-            />
-          </UFormField>
+              <UFormField label="Email" name="participantEmail" required>
+                <UInput
+                  v-model="formState.participantEmail"
+                  type="email"
+                  placeholder="you@example.com"
+                />
+              </UFormField>
 
-          <UButton type="submit" block :loading="submitting">
-            Register
-          </UButton>
-        </UForm>
-      </UCard>
-
-      <UCard v-if="hasCategories">
-        <template #header>
-          <h2 class="text-lg font-semibold">Registered participants</h2>
-        </template>
-
-        <div class="space-y-6">
-          <div v-for="category in eventData.categories" :key="category.id">
-            <h3 class="font-medium">
-              {{ category.name }}
-              <span class="text-muted font-normal"
-                >({{ category.participants.length }})</span
+              <UFormField
+                v-if="hasCategories"
+                label="Categories"
+                name="categoryIds"
+                required
               >
-            </h3>
+                <UCheckboxGroup
+                  v-model="formState.categoryIds"
+                  :items="
+                    eventData.categories.map((c) => ({
+                      label: c.name,
+                      value: c.id,
+                    }))
+                  "
+                />
+              </UFormField>
 
-            <p v-if="category.participants.length === 0" class="text-muted mt-1">
-              No participants yet.
-            </p>
-            <ul v-else class="mt-1 list-disc list-inside">
-              <li v-for="(name, index) in category.participants" :key="index">
-                {{ name }}
-              </li>
-            </ul>
-          </div>
-        </div>
-      </UCard>
+              <UButton type="submit" block :loading="submitting">
+                Register
+              </UButton>
+            </UForm>
+          </UCard>
+        </template>
+      </UTabs>
     </div>
   </UContainer>
 </template>
