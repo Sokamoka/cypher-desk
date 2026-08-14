@@ -93,3 +93,21 @@ export const CreatePreselectionPhaseSchema = v.object({
 export type CreatePreselectionPhase = v.InferOutput<
   typeof CreatePreselectionPhaseSchema
 >;
+
+// Event board score schema (POST /api/events/[id]/board). Slider values are
+// constrained to a 0-10 range to match the `<USlider>` used on the board page.
+export const SaveBoardScoreSchema = v.object({
+  participantId: v.pipe(
+    v.number(),
+    v.integer("Participant ID must be an integer"),
+    v.minValue(1, "Participant ID is required"),
+  ),
+  sliderValue: v.pipe(
+    v.number(),
+    v.integer("Slider value must be an integer"),
+    v.minValue(0, "Slider value must be at least 0"),
+    v.maxValue(10, "Slider value must be at most 10"),
+  ),
+});
+
+export type SaveBoardScore = v.InferOutput<typeof SaveBoardScoreSchema>;

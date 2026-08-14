@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, primaryKey, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 // ---------------------------------------------------------------------------
@@ -160,6 +160,52 @@ export const preselectionPhases = sqliteTable('preselection_phases', {
   groupSize: integer('group_size').notNull(),
 });
 
+// One row per phase, tracking whether the organizer has started the
+// evaluation ("board") for that specific phase. Created lazily on first
+// GET/start call. Keyed by phase (not event) because a single event can run
+// multiple phases (across categories), each with its own board state.
+export const phaseBoards = sqliteTable('phase_boards', {
+  phaseId: text('phase_id')
+    .primaryKey()
+    .references(() => categoryPhases.id, { onDelete: 'cascade' }),
+  isStarted: integer('is_started', { mode: 'boolean' }).notNull().default(false),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+// One row per participant per phase, storing the evaluator's slider score.
+// A participant can be scored on multiple phases, so the score is keyed by
+// (phaseId, participantId) rather than by participant alone.
+export const phaseBoardScores = sqliteTable(
+  'phase_board_scores',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    phaseId: text('phase_id')
+      .notNull()
+      .references(() => categoryPhases.id, { onDelete: 'cascade' }),
+    participantId: integer('participant_id')
+      .notNull()
+      .references(() => eventRegistrations.id, { onDelete: 'cascade' }),
+    sliderValue: integer('slider_value').notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    phaseParticipantUnique: uniqueIndex('phase_board_scores_phase_participant_unique').on(
+      table.phaseId,
+      table.participantId,
+    ),
+  }),
+);
+
 // ---------------------------------------------------------------------------
 // Inferred types
 // ---------------------------------------------------------------------------
@@ -193,3 +239,9 @@ export type NewCategoryPhase = typeof categoryPhases.$inferInsert;
 
 export type PreselectionPhase = typeof preselectionPhases.$inferSelect;
 export type NewPreselectionPhase = typeof preselectionPhases.$inferInsert;
+
+export type PhaseBoard = typeof phaseBoards.$inferSelect;
+export type NewPhaseBoard = typeof phaseBoards.$inferInsert;
+
+export type PhaseBoardScore = typeof phaseBoardScores.$inferSelect;
+export type NewPhaseBoardScore = typeof phaseBoardScores.$inferInsert;
