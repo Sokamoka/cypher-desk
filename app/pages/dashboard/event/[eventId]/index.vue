@@ -174,7 +174,7 @@ const columns: TableColumn<EventCategory>[] = [
             label="Participants"
             icon="i-lucide-users"
             color="secondary"
-            :to="`/dashboard/events/${eventId}`"
+            :to="`/dashboard/event/${eventId}/participants`"
           />
           <UButton
             label="Edit Event"

@@ -7,7 +7,7 @@ definePageMeta({
 });
 
 const route = useRoute();
-const eventId = computed(() => route.params.id as string);
+const eventId = computed(() => route.params.eventId as string);
 
 interface EventCategory {
   id: string;
@@ -31,7 +31,7 @@ interface Registration {
   categories: EventCategory[];
 }
 
-const { data, pending, error } = await useFetch<{
+const { data, pending, error, execute } = await useFetch<{
   success: boolean;
   event: DashboardEvent;
   categories: EventCategory[];
@@ -41,6 +41,11 @@ const { data, pending, error } = await useFetch<{
 
 const eventData = computed(() => data.value?.event ?? null);
 const registrations = computed(() => data.value?.registrations ?? []);
+const breadcrumbItems = useDashboardEventBreadcrumbs({
+  eventId,
+  eventLabel: computed(() => eventData.value?.title),
+  currentLabel: "Participants",
+});
 
 useSeoMeta({
   title: () =>
@@ -51,8 +56,8 @@ function formatDate(value: string) {
   return new Date(value).toLocaleString();
 }
 
-function publicUrl(slug: string) {
-  return `/e/${slug}`;
+function onRefresh() {
+  execute();
 }
 
 const columns: TableColumn<Registration>[] = [
@@ -74,22 +79,44 @@ const columns: TableColumn<Registration>[] = [
 <template>
   <UDashboardPanel id="dashboard-event-detail">
     <template #header>
-      <UDashboardNavbar :title="eventData?.title ?? 'Event'">
+      <UDashboardNavbar>
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
 
+        <template #title>
+          <UBreadcrumb :items="breadcrumbItems" color="neutral" />
+        </template>
+
         <template #right>
-          <UButton
+          <!-- <UButton
             icon="i-lucide-arrow-left"
             variant="soft"
             color="neutral"
-            to="/dashboard"
+            :to="`/dashboard/event/${eventId}`"
           >
-            Back to Events
-          </UButton>
+            Back to Event
+          </UButton> -->
         </template>
       </UDashboardNavbar>
+
+      <UDashboardToolbar>
+        <template #right>
+          <UButton
+            label="Refresh"
+            icon="i-lucide-refresh-ccw"
+            variant="subtle"
+            color="neutral"
+            @click="onRefresh"
+          />
+          <UButton
+            label="Add new Participant"
+            icon="i-lucide-plus"
+            variant="solid"
+            color="success"
+          />
+        </template>
+      </UDashboardToolbar>
     </template>
 
     <template #body>
@@ -109,28 +136,10 @@ const columns: TableColumn<Registration>[] = [
         </div>
 
         <template v-else>
-          <UCard>
+          <UCard :ui="{ body: 'p-0 sm:p-0' }">
             <template #header>
               <div class="flex items-center justify-between">
-                <div>
-                  <h2 class="text-lg font-semibold">{{ eventData.title }}</h2>
-                  <p class="text-sm text-muted">
-                    {{ formatDate(eventData.date) }}
-                  </p>
-                </div>
-                <ULink :to="publicUrl(eventData.slug)" target="_blank">
-                  {{ publicUrl(eventData.slug) }}
-                </ULink>
-              </div>
-            </template>
-
-            <p v-if="eventData.description">{{ eventData.description }}</p>
-          </UCard>
-
-          <UCard>
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold">Registrants</h2>
+                <h2 class="text-lg font-semibold">Participants</h2>
                 <UBadge color="primary" variant="soft">
                   {{ registrations.length }} registrations
                 </UBadge>
