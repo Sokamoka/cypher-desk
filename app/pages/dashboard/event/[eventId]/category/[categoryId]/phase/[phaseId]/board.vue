@@ -5,7 +5,7 @@ definePageMeta({
 });
 
 const route = useRoute();
-const phaseId = computed(() => route.params.id as string);
+const phaseId = computed(() => route.params.phaseId as string);
 
 interface DashboardEvent {
   id: string;

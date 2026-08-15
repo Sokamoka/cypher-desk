@@ -199,7 +199,7 @@ const columns: TableColumn<PhaseTableRow>[] = [
                     variant="ghost"
                     color="neutral"
                     size="sm"
-                    :to="`/dashboard/event/board/${row.original.id}`"
+                    :to="`/dashboard/event/${eventData.id}/category/${selectedCategory.id}/phase/${row.original.id}/board`"
                   >
                     Manage board
                   </UButton>
@@ -208,7 +208,7 @@ const columns: TableColumn<PhaseTableRow>[] = [
                     variant="ghost"
                     color="neutral"
                     size="sm"
-                    :to="`/dashboard/event/result/${row.original.id}`"
+                    :to="`/dashboard/event/${eventData.id}/category/${selectedCategory.id}/phase/${row.original.id}/result`"
                   >
                     Results
                   </UButton>
