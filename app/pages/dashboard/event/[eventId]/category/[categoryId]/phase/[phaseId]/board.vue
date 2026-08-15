@@ -5,6 +5,8 @@ definePageMeta({
 });
 
 const route = useRoute();
+const eventId = computed(() => route.params.eventId as string);
+const categoryId = computed(() => route.params.categoryId as string);
 const phaseId = computed(() => route.params.phaseId as string);
 
 interface DashboardEvent {
@@ -60,6 +62,15 @@ const {
 const eventData = computed(() => data.value?.event ?? null);
 const categoryData = computed(() => data.value?.category ?? null);
 const phaseData = computed(() => data.value?.phase ?? null);
+const breadcrumbItems = useDashboardEventBreadcrumbs({
+  eventId,
+  categoryId,
+  phaseId,
+  eventLabel: computed(() => eventData.value?.title),
+  categoryLabel: computed(() => categoryData.value?.name),
+  phaseLabel: computed(() => phaseData.value?.name),
+  currentLabel: "Board",
+});
 
 const isPhaseStarted = ref(false);
 const participants = ref<BoardParticipant[]>([]);
@@ -123,15 +134,13 @@ function hasUnsavedChanges(participant: BoardParticipant) {
 <template>
   <UDashboardPanel id="dashboard-event-detail">
     <template #header>
-      <UDashboardNavbar
-        :title="
-          categoryData && phaseData
-            ? `${categoryData.name} — ${phaseData.name}`
-            : 'Board'
-        "
-      >
+      <UDashboardNavbar>
         <template #leading>
           <UDashboardSidebarCollapse />
+        </template>
+
+        <template #title>
+          <UBreadcrumb :items="breadcrumbItems" color="neutral" />
         </template>
 
         <template #right>

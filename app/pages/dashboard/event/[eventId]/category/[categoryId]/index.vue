@@ -49,6 +49,7 @@ interface PhaseTableRow {
 }
 
 const route = useRoute();
+const eventId = computed(() => route.params.eventId as string);
 const categoryId = computed(() => route.params.categoryId as string);
 const openPreselectionModal = ref(false);
 
@@ -62,6 +63,13 @@ const eventData = computed(() => data.value?.event ?? null);
 const selectedCategory = computed(() => data.value?.category ?? null);
 const selectedEventId = computed(() => eventData.value?.id ?? "");
 const selectedCategoryId = computed(() => selectedCategory.value?.id ?? "");
+const breadcrumbItems = useDashboardEventBreadcrumbs({
+  eventId,
+  categoryId,
+  eventLabel: computed(() => eventData.value?.title),
+  categoryLabel: computed(() => selectedCategory.value?.name),
+  currentLabel: "Phases",
+});
 
 const phaseRows = computed<PhaseTableRow[]>(() =>
   (selectedCategory.value?.phases ?? []).map((phase) => ({
@@ -115,9 +123,13 @@ const columns: TableColumn<PhaseTableRow>[] = [
 <template>
   <UDashboardPanel id="dashboard-event-phases">
     <template #header>
-      <UDashboardNavbar title="Phases">
+      <UDashboardNavbar>
         <template #leading>
           <UDashboardSidebarCollapse />
+        </template>
+
+        <template #title>
+          <UBreadcrumb :items="breadcrumbItems" color="neutral" />
         </template>
 
         <template #right>

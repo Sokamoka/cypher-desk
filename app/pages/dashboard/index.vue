@@ -1,20 +1,6 @@
 <script setup lang="ts">
-import * as v from "valibot";
 import type { FormSubmitEvent, TableColumn } from "@nuxt/ui";
-import {
-  CreateEventSchema,
-  type CreateEvent,
-  type UpdateEvent,
-} from "~~/utils/schemas";
-
-// The edit form's client-side state keeps `categories` as plain tag names
-// (matching UInputTags), separate from `UpdateEventSchema` which expects
-// {id?, name}[] on the wire — the id/name payload is built in
-// `onUpdateEvent` right before the PUT request.
-const EditEventFormSchema = v.object({
-  ...v.partial(v.omit(CreateEventSchema, ["categories"])).entries,
-  categories: v.optional(v.array(v.string())),
-});
+import { CreateEventSchema, type CreateEvent } from "~~/utils/schemas";
 
 definePageMeta({
   layout: "dashboard",
@@ -114,102 +100,6 @@ async function onCreateEvent(event: FormSubmitEvent<CreateEvent>) {
     creating.value = false;
   }
 }
-
-// --- Edit event form ---
-
-interface EventCategory {
-  id: string;
-  name: string;
-}
-
-const isEditModalOpen = ref(false);
-const editing = ref(false);
-const editLoading = ref(false);
-const editingEventId = ref<string | null>(null);
-// Category names as originally loaded, used to map unchanged tag names back
-// to their existing category id when saving (so we update instead of
-// recreating them).
-const originalCategories = ref<EventCategory[]>([]);
-
-const editFormState = reactive({
-  title: "",
-  description: "",
-  date: "",
-  categories: [] as string[],
-});
-
-function toDatetimeLocal(value: string) {
-  // Stored dates are already `YYYY-MM-DDTHH:mm` (local wall-clock, no
-  // timezone) — the same format the datetime-local input produces/expects.
-  return value.slice(0, 16);
-}
-
-async function openEditModal(row: DashboardEvent) {
-  editingEventId.value = row.id;
-  isEditModalOpen.value = true;
-  editLoading.value = true;
-
-  try {
-    const detail = await $fetch<{
-      success: boolean;
-      event: DashboardEvent;
-      categories: EventCategory[];
-    }>(`/api/events/${row.id}`);
-
-    editFormState.title = detail.event.title;
-    editFormState.description = detail.event.description ?? "";
-    editFormState.date = toDatetimeLocal(detail.event.date);
-    editFormState.categories = detail.categories.map((c) => c.name);
-    originalCategories.value = detail.categories;
-  } catch (err: any) {
-    toast.add({
-      title: "Failed to load event",
-      description: err?.data?.message ?? "Please try again",
-      color: "error",
-    });
-    isEditModalOpen.value = false;
-  } finally {
-    editLoading.value = false;
-  }
-}
-
-async function onUpdateEvent(
-  event: FormSubmitEvent<v.InferOutput<typeof EditEventFormSchema>>,
-) {
-  if (!editingEventId.value) return;
-  editing.value = true;
-
-  try {
-    // Map current tag names back to their original category id when the
-    // name is unchanged, so the server updates rather than recreates them.
-    const categories = editFormState.categories.map((name) => {
-      const existing = originalCategories.value.find((c) => c.name === name);
-      return existing ? { id: existing.id, name } : { name };
-    });
-
-    await $fetch(`/api/events/${editingEventId.value}`, {
-      method: "PUT",
-      body: {
-        title: editFormState.title,
-        description: editFormState.description,
-        date: editFormState.date,
-        categories,
-      } satisfies UpdateEvent,
-    });
-
-    toast.add({ title: "Event updated", color: "success" });
-    isEditModalOpen.value = false;
-    await refresh();
-  } catch (err: any) {
-    toast.add({
-      title: "Failed to update event",
-      description: err?.data?.message ?? "Please try again",
-      color: "error",
-    });
-  } finally {
-    editing.value = false;
-  }
-}
 </script>
 
 <template>
@@ -220,7 +110,7 @@ async function onUpdateEvent(
           <UDashboardSidebarCollapse />
         </template>
 
-        <template #right>
+        <!-- <template #right>
           <UButton
             icon="i-lucide-plus"
             color="primary"
@@ -228,8 +118,19 @@ async function onUpdateEvent(
           >
             Create Event
           </UButton>
-        </template>
+        </template> -->
       </UDashboardNavbar>
+
+      <UDashboardToolbar>
+        <template #right>
+          <UButton
+            label="Create Event"
+            icon="i-lucide-plus"
+            color="primary"
+            @click="isCreateModalOpen = true"
+          />
+        </template>
+      </UDashboardToolbar>
     </template>
 
     <template #body>
@@ -284,24 +185,6 @@ async function onUpdateEvent(
 
             <template #actions-cell="{ row }">
               <div class="flex gap-2">
-                <UButton
-                  icon="i-lucide-users"
-                  variant="ghost"
-                  color="neutral"
-                  size="sm"
-                  :to="`/dashboard/events/${row.original.id}`"
-                >
-                  Registrants
-                </UButton>
-                <UButton
-                  icon="i-lucide-pencil"
-                  variant="ghost"
-                  color="neutral"
-                  size="sm"
-                  @click="openEditModal(row.original)"
-                >
-                  Edit
-                </UButton>
                 <UButton
                   icon="i-lucide-pencil"
                   variant="ghost"
@@ -378,80 +261,6 @@ async function onUpdateEvent(
                 </UButton>
                 <UButton type="submit" :loading="creating">
                   Create Event
-                </UButton>
-              </div>
-            </UForm>
-          </UCard>
-        </template>
-      </UModal>
-
-      <!-- Edit Event Modal -->
-      <UModal v-model:open="isEditModalOpen" title="Edit Event">
-        <template #content>
-          <UCard>
-            <template #header>
-              <h2 class="text-lg font-semibold">Edit Event</h2>
-            </template>
-
-            <div v-if="editLoading" class="space-y-4">
-              <USkeleton class="h-10 w-full" />
-              <USkeleton class="h-24 w-full" />
-            </div>
-
-            <UForm
-              v-else
-              :schema="EditEventFormSchema"
-              :state="editFormState"
-              class="space-y-4"
-              @submit="onUpdateEvent"
-            >
-              <UFormField label="Title" name="title" required>
-                <UInput
-                  v-model="editFormState.title"
-                  placeholder="Event title"
-                  class="w-full"
-                />
-              </UFormField>
-
-              <UFormField label="Description" name="description">
-                <UTextarea
-                  v-model="editFormState.description"
-                  placeholder="Event description"
-                  class="w-full"
-                />
-              </UFormField>
-
-              <UFormField label="Date" name="date" required>
-                <UInput
-                  v-model="editFormState.date"
-                  type="datetime-local"
-                  placeholder="Event date"
-                />
-              </UFormField>
-
-              <UFormField
-                label="Categories"
-                name="categories"
-                hint="Optional"
-                help="Add category name and press enter"
-              >
-                <UInputTags
-                  v-model="editFormState.categories"
-                  placeholder="e.g. Girls, Boys"
-                  class="w-full"
-                />
-              </UFormField>
-
-              <div class="flex gap-3 justify-end pt-2">
-                <UButton
-                  variant="soft"
-                  color="neutral"
-                  @click="isEditModalOpen = false"
-                >
-                  Cancel
-                </UButton>
-                <UButton type="submit" :loading="editing">
-                  Save Changes
                 </UButton>
               </div>
             </UForm>

@@ -76,10 +76,10 @@ const groups = computed(() => [
       </template>
 
       <template #default="{ collapsed }">
-        <UDashboardSearchButton
+        <!-- <UDashboardSearchButton
           :collapsed="collapsed"
           class="bg-transparent ring-default"
-        />
+        /> -->
 
         <UNavigationMenu
           :collapsed="collapsed"

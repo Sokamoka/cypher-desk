@@ -7,6 +7,8 @@ definePageMeta({
 });
 
 const route = useRoute();
+const eventId = computed(() => route.params.eventId as string);
+const categoryId = computed(() => route.params.categoryId as string);
 const phaseId = computed(() => route.params.phaseId as string);
 
 interface ResultEvent {
@@ -43,6 +45,15 @@ const eventData = computed(() => data.value?.event ?? null);
 const categoryData = computed(() => data.value?.category ?? null);
 const phaseData = computed(() => data.value?.phase ?? null);
 const results = computed(() => data.value?.results ?? []);
+const breadcrumbItems = useDashboardEventBreadcrumbs({
+  eventId,
+  categoryId,
+  phaseId,
+  eventLabel: computed(() => eventData.value?.title),
+  categoryLabel: computed(() => categoryData.value?.name),
+  phaseLabel: computed(() => phaseData.value?.name),
+  currentLabel: "Results",
+});
 
 useSeoMeta({
   title: () =>
@@ -68,15 +79,13 @@ const columns: TableColumn<ParticipantResult>[] = [
 <template>
   <UDashboardPanel id="dashboard-event-result">
     <template #header>
-      <UDashboardNavbar
-        :title="
-          categoryData && phaseData
-            ? `${categoryData.name} — ${phaseData.name} Results`
-            : 'Results'
-        "
-      >
+      <UDashboardNavbar>
         <template #leading>
           <UDashboardSidebarCollapse />
+        </template>
+
+        <template #title>
+          <UBreadcrumb :items="breadcrumbItems" color="neutral" />
         </template>
       </UDashboardNavbar>
     </template>
