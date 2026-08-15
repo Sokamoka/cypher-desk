@@ -49,7 +49,7 @@ interface PhaseTableRow {
 }
 
 const route = useRoute();
-const categoryId = computed(() => route.params.id as string);
+const categoryId = computed(() => route.params.categoryId as string);
 const openPreselectionModal = ref(false);
 
 const { data, pending, error, refresh } = await useFetch<{

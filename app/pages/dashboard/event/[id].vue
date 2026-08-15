@@ -129,7 +129,7 @@ const columns: TableColumn<EventCategory>[] = [
                     variant="ghost"
                     color="neutral"
                     size="sm"
-                    :to="`/dashboard/event/category/${row.original.id}`"
+                    :to="`/dashboard/event/${eventData.id}/category/${row.original.id}`"
                   >
                     Manage
                   </UButton>
