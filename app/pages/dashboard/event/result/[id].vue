@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { TableColumn } from "@nuxt/ui";
+
 definePageMeta({
   layout: "dashboard",
   middleware: "auth",
@@ -55,6 +57,12 @@ function rankColor(rank: number) {
   if (rank === 3) return "error";
   return "neutral";
 }
+
+const columns: TableColumn<ParticipantResult>[] = [
+  { accessorKey: "rank", header: "Rank" },
+  { accessorKey: "name", header: "Participant" },
+  { accessorKey: "score", header: "Score" },
+];
 </script>
 
 <template>
@@ -117,40 +125,31 @@ function rankColor(rank: number) {
               </p>
             </div>
 
-            <div v-else class="space-y-3">
-              <UPageCard
-                v-for="participant in results"
-                :key="participant.id"
-                variant="subtle"
-                orientation="horizontal"
-                :title="participant.name"
-              >
-                <template #leading>
-                  <UBadge
-                    :color="rankColor(participant.rank)"
-                    variant="soft"
-                    size="lg"
-                    class="justify-center w-8"
-                  >
-                    {{ participant.rank }}
-                  </UBadge>
-                </template>
+            <UTable v-else :data="results" :columns="columns">
+              <template #rank-cell="{ row }">
+                <UBadge
+                  :color="rankColor(row.original.rank)"
+                  variant="soft"
+                  size="lg"
+                  class="justify-center w-8"
+                >
+                  {{ row.original.rank }}
+                </UBadge>
+              </template>
 
-                <div class="flex items-center gap-2">
-                  <UBadge
-                    v-if="participant.score !== null"
-                    color="success"
-                    variant="subtle"
-                    size="lg"
-                  >
-                    {{ participant.score }} pts
-                  </UBadge>
-                  <UBadge v-else color="neutral" variant="subtle" size="lg">
-                    Not scored
-                  </UBadge>
-                </div>
-              </UPageCard>
-            </div>
+              <template #score-cell="{ row }">
+                <UBadge
+                  v-if="row.original.score !== null"
+                  color="success"
+                  variant="subtle"
+                >
+                  {{ row.original.score }} pts
+                </UBadge>
+                <UBadge v-else color="neutral" variant="subtle">
+                  Not scored
+                </UBadge>
+              </template>
+            </UTable>
           </UCard>
         </template>
       </div>
