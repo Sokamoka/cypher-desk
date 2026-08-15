@@ -17,7 +17,7 @@ definePageMeta({
 });
 
 const route = useRoute();
-const eventId = computed(() => route.params.id as string);
+const eventId = computed(() => route.params.eventId as string);
 const toast = useToast();
 
 interface EventCategory {

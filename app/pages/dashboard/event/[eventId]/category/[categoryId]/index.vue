@@ -132,6 +132,26 @@ const columns: TableColumn<PhaseTableRow>[] = [
           <UBreadcrumb :items="breadcrumbItems" color="neutral" />
         </template>
 
+        <!-- <template #right>
+          <UDropdownMenu
+            :items="boardItems"
+            :content="{
+              align: 'end',
+              side: 'bottom',
+              sideOffset: 8,
+            }"
+            :ui="{
+              content: 'w-48',
+            }"
+          >
+            <UButton icon="i-lucide-plus" variant="soft" color="success">
+              Add board
+            </UButton>
+          </UDropdownMenu>
+        </template> -->
+      </UDashboardNavbar>
+
+      <UDashboardToolbar>
         <template #right>
           <UDropdownMenu
             :items="boardItems"
@@ -149,7 +169,7 @@ const columns: TableColumn<PhaseTableRow>[] = [
             </UButton>
           </UDropdownMenu>
         </template>
-      </UDashboardNavbar>
+      </UDashboardToolbar>
     </template>
 
     <template #body>
@@ -169,11 +189,11 @@ const columns: TableColumn<PhaseTableRow>[] = [
         </div>
 
         <template v-else>
-          <UPageCard
+          <!-- <UPageCard
             :title="eventData.title"
             :description="selectedCategory.name"
             variant="solid"
-          />
+          /> -->
 
           <UCard>
             <template #header>
