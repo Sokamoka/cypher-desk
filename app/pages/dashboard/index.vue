@@ -208,62 +208,14 @@ async function onCreateEvent(event: FormSubmitEvent<CreateEvent>) {
               <h2 class="text-lg font-semibold">Create Event</h2>
             </template>
 
-            <UForm
+            <DashboardEventForm
               :schema="CreateEventSchema"
               :state="formState"
-              class="space-y-4"
+              submit-label="Create Event"
+              :submit-loading="creating"
               @submit="onCreateEvent"
-            >
-              <UFormField label="Title" name="title" required>
-                <UInput
-                  v-model="formState.title"
-                  placeholder="Event title"
-                  class="w-full"
-                />
-              </UFormField>
-
-              <UFormField label="Description" name="description">
-                <UTextarea
-                  v-model="formState.description"
-                  placeholder="Event description"
-                  class="w-full"
-                />
-              </UFormField>
-
-              <UFormField label="Date" name="date" required>
-                <UInput
-                  v-model="formState.date"
-                  type="datetime-local"
-                  placeholder="Event date"
-                />
-              </UFormField>
-
-              <UFormField
-                label="Categories"
-                name="categories"
-                hint="Optional"
-                help="Add category name and press enter"
-              >
-                <UInputTags
-                  v-model="formState.categories"
-                  placeholder="e.g. Girls, Boys"
-                  class="w-full"
-                />
-              </UFormField>
-
-              <div class="flex gap-3 justify-end pt-2">
-                <UButton
-                  variant="soft"
-                  color="neutral"
-                  @click="isCreateModalOpen = false"
-                >
-                  Cancel
-                </UButton>
-                <UButton type="submit" :loading="creating">
-                  Create Event
-                </UButton>
-              </div>
-            </UForm>
+              @cancel="isCreateModalOpen = false"
+            />
           </UCard>
         </template>
       </UModal>

@@ -266,63 +266,15 @@ const columns: TableColumn<EventCategory>[] = [
               <USkeleton class="h-24 w-full" />
             </div>
 
-            <UForm
+            <DashboardEventForm
               v-else
               :schema="EditEventFormSchema"
               :state="editFormState"
-              class="space-y-4"
+              submit-label="Save Changes"
+              :submit-loading="editing"
               @submit="onUpdateEvent"
-            >
-              <UFormField label="Title" name="title" required>
-                <UInput
-                  v-model="editFormState.title"
-                  placeholder="Event title"
-                  class="w-full"
-                />
-              </UFormField>
-
-              <UFormField label="Description" name="description">
-                <UTextarea
-                  v-model="editFormState.description"
-                  placeholder="Event description"
-                  class="w-full"
-                />
-              </UFormField>
-
-              <UFormField label="Date" name="date" required>
-                <UInput
-                  v-model="editFormState.date"
-                  type="datetime-local"
-                  placeholder="Event date"
-                />
-              </UFormField>
-
-              <UFormField
-                label="Categories"
-                name="categories"
-                hint="Optional"
-                help="Add category name and press enter"
-              >
-                <UInputTags
-                  v-model="editFormState.categories"
-                  placeholder="e.g. Girls, Boys"
-                  class="w-full"
-                />
-              </UFormField>
-
-              <div class="flex gap-3 justify-end pt-2">
-                <UButton
-                  variant="soft"
-                  color="neutral"
-                  @click="isEditModalOpen = false"
-                >
-                  Cancel
-                </UButton>
-                <UButton type="submit" :loading="editing">
-                  Save Changes
-                </UButton>
-              </div>
-            </UForm>
+              @cancel="isEditModalOpen = false"
+            />
           </UCard>
         </template>
       </UModal>
