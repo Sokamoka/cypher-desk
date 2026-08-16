@@ -13,7 +13,10 @@ interface DashboardEvent {
   id: string;
   title: string;
   description: string | null;
-  date: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  judges: { name: string }[];
   slug: string;
   createdAt: string;
 }

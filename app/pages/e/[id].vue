@@ -38,7 +38,10 @@ interface PublicEvent {
   id: string;
   title: string;
   description: string | null;
-  date: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  judges: { name: string }[];
   slug: string;
   categories: EventCategory[];
 }
@@ -73,7 +76,15 @@ const active = computed({
 });
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString();
+  return new Date(value).toLocaleDateString();
+}
+
+function formatDateRange(startDate: string, endDate: string) {
+  if (startDate === endDate) {
+    return formatDate(startDate);
+  }
+
+  return `${formatDate(startDate)} - ${formatDate(endDate)}`;
 }
 
 const registered = ref(false);
@@ -98,7 +109,20 @@ async function onRegistered() {
     <div v-else class="space-y-8">
       <div>
         <h1 class="text-3xl font-bold">{{ eventData.title }}</h1>
-        <p class="mt-2 text-muted">{{ formatDate(eventData.date) }}</p>
+        <p class="mt-2 text-muted">
+          {{ formatDateRange(eventData.startDate, eventData.endDate) }}
+        </p>
+        <p class="text-muted">{{ eventData.location }}</p>
+        <div v-if="eventData.judges?.length" class="mt-3 flex flex-wrap gap-2">
+          <UBadge
+            v-for="judge in eventData.judges"
+            :key="judge.name"
+            variant="subtle"
+            color="neutral"
+          >
+            {{ judge.name }}
+          </UBadge>
+        </div>
         <UCollapsible v-if="eventData.description">
           <UButton
             class="group"

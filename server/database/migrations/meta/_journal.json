@@ -43,6 +43,20 @@
       "when": 1786720307199,
       "tag": "0005_bumpy_rafael_vega",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1786900218325,
+      "tag": "0006_event_date_range_location_judges",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1786901624709,
+      "tag": "0007_fix_events_fk_after_rebuild",
+      "breakpoints": true
     }
   ]
 }

@@ -1,11 +1,12 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq, or } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 import {
   events,
   eventCategories,
   eventRegistrations,
   registrationCategories,
 } from "~~/server/database/schema";
+import { parseEventJudges } from "~~/server/utils/event-judges";
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
@@ -24,7 +25,10 @@ export default defineEventHandler(async (event) => {
       id: events.id,
       title: events.title,
       description: events.description,
-      date: events.date,
+      location: events.location,
+      startDate: events.startDate,
+      endDate: events.endDate,
+      judgesRaw: sql<string>`${events.judges}`.as("judges_raw"),
       slug: events.slug,
     })
     .from(events)
@@ -68,11 +72,16 @@ export default defineEventHandler(async (event) => {
     ...category,
     participants: participantsByCategory.get(category.id) ?? [],
   }));
+  const { judgesRaw, ...eventFields } = eventData;
 
   // Public payload intentionally excludes `userId` and any registration/
   // participant data (never leak `participantEmail` on public endpoints).
   return {
     success: true,
-    event: { ...eventData, categories: categoriesWithParticipants },
+    event: {
+      ...eventFields,
+      judges: parseEventJudges(judgesRaw),
+      categories: categoriesWithParticipants,
+    },
   };
 });

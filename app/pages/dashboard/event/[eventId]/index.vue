@@ -1,15 +1,11 @@
 <script setup lang="ts">
-import * as v from "valibot";
 import type { TableColumn } from "@nuxt/ui";
 import {
   CreateEventSchema,
   type UpdateEvent,
 } from "~~/utils/schemas";
 
-const EditEventFormSchema = v.object({
-  ...v.partial(v.omit(CreateEventSchema, ["categories"])).entries,
-  categories: v.optional(v.array(v.string())),
-});
+const EditEventFormSchema = CreateEventSchema;
 
 definePageMeta({
   layout: "dashboard",
@@ -29,7 +25,10 @@ interface DashboardEvent {
   id: string;
   title: string;
   description: string | null;
-  date: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  judges: { name: string }[];
   slug: string;
   createdAt: string;
 }
@@ -54,7 +53,15 @@ useSeoMeta({
 });
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString();
+  return new Date(value).toLocaleDateString();
+}
+
+function formatDateRange(startDate: string, endDate: string) {
+  if (startDate === endDate) {
+    return formatDate(startDate);
+  }
+
+  return `${formatDate(startDate)} - ${formatDate(endDate)}`;
 }
 
 function publicUrl(slug: string) {
@@ -69,13 +76,12 @@ const originalCategories = ref<EventCategory[]>([]);
 const editFormState = reactive({
   title: "",
   description: "",
-  date: "",
+  location: "",
+  startDate: "",
+  endDate: "",
+  judges: [] as { name: string }[],
   categories: [] as string[],
 });
-
-function toDatetimeLocal(value: string) {
-  return value.slice(0, 16);
-}
 
 async function openEditModal() {
   isEditModalOpen.value = true;
@@ -90,7 +96,10 @@ async function openEditModal() {
 
     editFormState.title = detail.event.title;
     editFormState.description = detail.event.description ?? "";
-    editFormState.date = toDatetimeLocal(detail.event.date);
+    editFormState.location = detail.event.location;
+    editFormState.startDate = detail.event.startDate;
+    editFormState.endDate = detail.event.endDate;
+    editFormState.judges = detail.event.judges ?? [];
     editFormState.categories = detail.categories.map((c) => c.name);
     originalCategories.value = detail.categories;
   } catch (err: any) {
@@ -119,7 +128,10 @@ async function onUpdateEvent() {
       body: {
         title: editFormState.title,
         description: editFormState.description,
-        date: editFormState.date,
+        location: editFormState.location,
+        startDate: editFormState.startDate,
+        endDate: editFormState.endDate,
+        judges: editFormState.judges,
         categories,
       } satisfies UpdateEvent,
     });
@@ -209,8 +221,14 @@ const columns: TableColumn<EventCategory>[] = [
                 <div>
                   <h2 class="text-lg font-semibold">{{ eventData.title }}</h2>
                   <p class="text-sm text-muted">
-                    {{ formatDate(eventData.date) }}
+                    {{
+                      formatDateRange(
+                        eventData.startDate,
+                        eventData.endDate,
+                      )
+                    }}
                   </p>
+                  <p class="text-sm text-muted">{{ eventData.location }}</p>
                 </div>
                 <ULink :to="publicUrl(eventData.slug)" target="_blank">
                   {{ publicUrl(eventData.slug) }}
@@ -219,6 +237,20 @@ const columns: TableColumn<EventCategory>[] = [
             </template>
 
             <p v-if="eventData.description">{{ eventData.description }}</p>
+            <div
+              v-if="eventData.judges?.length"
+              class="mt-4 flex flex-wrap items-center gap-2"
+            >
+              <span class="text-sm text-muted">Judges:</span>
+              <UBadge
+                v-for="judge in eventData.judges"
+                :key="judge.name"
+                color="neutral"
+                variant="subtle"
+              >
+                {{ judge.name }}
+              </UBadge>
+            </div>
           </UCard>
 
           <UCard>

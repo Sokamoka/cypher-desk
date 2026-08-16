@@ -1,8 +1,16 @@
 import * as v from "valibot";
 
+export const EventJudgeSchema = v.object({
+  name: v.pipe(
+    v.string(),
+    v.minLength(1, "Judge name is required"),
+    v.maxLength(100, "Judge name must be at most 100 characters"),
+  ),
+});
+
 // Event schema (user-owned, created via /api/events, POST body only —
 // id/slug/userId are generated/attached server-side)
-export const CreateEventSchema = v.object({
+const EventFieldsSchema = v.object({
   title: v.pipe(
     v.string(),
     v.minLength(1, "Event title is required"),
@@ -14,22 +22,42 @@ export const CreateEventSchema = v.object({
       v.maxLength(1000, "Description must be at most 1000 characters"),
     ),
   ),
-  date: v.pipe(
+  location: v.pipe(
     v.string(),
-    v.isoDateTime("Event date must be a valid ISO datetime"),
+    v.minLength(1, "Location is required"),
+    v.maxLength(100, "Location must be at most 100 characters"),
   ),
-  // Category names for this event (e.g. "Girls", "Boys"). Optional — an
-  // event may have zero categories.
-  categories: v.optional(
-    v.array(
-      v.pipe(
-        v.string(),
-        v.minLength(1, "Category name is required"),
-        v.maxLength(50, "Category name must be at most 50 characters"),
+  startDate: v.pipe(
+    v.string(),
+    v.isoDate("Start date must be a valid ISO date (YYYY-MM-DD)"),
+  ),
+  endDate: v.pipe(
+    v.string(),
+    v.isoDate("End date must be a valid ISO date (YYYY-MM-DD)"),
+  ),
+  judges: v.array(EventJudgeSchema),
+});
+
+export const CreateEventSchema = v.pipe(
+  v.object({
+    ...EventFieldsSchema.entries,
+    // Category names for this event (e.g. "Girls", "Boys"). Optional — an
+    // event may have zero categories.
+    categories: v.optional(
+      v.array(
+        v.pipe(
+          v.string(),
+          v.minLength(1, "Category name is required"),
+          v.maxLength(50, "Category name must be at most 50 characters"),
+        ),
       ),
     ),
+  }),
+  v.check(
+    (input) => input.endDate >= input.startDate,
+    "End date must be equal to or after start date",
   ),
-});
+);
 
 export type CreateEvent = v.InferOutput<typeof CreateEventSchema>;
 
@@ -49,10 +77,19 @@ export type EventCategoryInput = v.InferOutput<typeof EventCategoryInputSchema>;
 // Update reuses the base fields but replaces `categories` (string[], used
 // only at creation) with the richer id+name shape needed to diff/sync
 // existing category rows on edit.
-export const UpdateEventSchema = v.object({
-  ...v.partial(v.omit(CreateEventSchema, ["categories"])).entries,
-  categories: v.optional(v.array(EventCategoryInputSchema)),
-});
+export const UpdateEventSchema = v.pipe(
+  v.object({
+    ...v.partial(EventFieldsSchema).entries,
+    categories: v.optional(v.array(EventCategoryInputSchema)),
+  }),
+  v.check(
+    (input) =>
+      input.startDate === undefined ||
+      input.endDate === undefined ||
+      input.endDate >= input.startDate,
+    "End date must be equal to or after start date",
+  ),
+);
 export type UpdateEvent = v.InferOutput<typeof UpdateEventSchema>;
 
 // Public event registration schema (no auth). `categoryIds` lets an

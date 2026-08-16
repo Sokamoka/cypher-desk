@@ -88,7 +88,13 @@ export const events = sqliteTable('events', {
     .references(() => user.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   description: text('description'),
-  date: text('date').notNull(),
+  location: text('location').notNull(),
+  startDate: text('start_date').notNull(),
+  endDate: text('end_date').notNull(),
+  judges: text('judges', { mode: 'json' })
+    .$type<{ name: string }[]>()
+    .notNull()
+    .default(sql`'[]'`),
   slug: text('slug').notNull().unique(),
   createdAt: text('created_at')
     .notNull()

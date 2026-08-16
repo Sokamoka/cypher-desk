@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   events,
   eventRegistrations,
@@ -7,6 +7,7 @@ import {
   registrationCategories,
 } from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
+import { parseEventJudges } from "~~/server/utils/event-judges";
 
 export default defineEventHandler(async (event) => {
   const user = await requireSessionUser(event);
@@ -22,7 +23,18 @@ export default defineEventHandler(async (event) => {
   const db = drizzle(event.context.cloudflare.env.DB);
 
   const eventData = await db
-    .select()
+    .select({
+      id: events.id,
+      userId: events.userId,
+      title: events.title,
+      description: events.description,
+      location: events.location,
+      startDate: events.startDate,
+      endDate: events.endDate,
+      judgesRaw: sql<string>`${events.judges}`.as("judges_raw"),
+      slug: events.slug,
+      createdAt: events.createdAt,
+    })
     .from(events)
     .where(eq(events.id, id))
     .then((rows) => rows[0]);
@@ -83,7 +95,18 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
-    event: eventData,
+    event: {
+      id: eventData.id,
+      userId: eventData.userId,
+      title: eventData.title,
+      description: eventData.description,
+      location: eventData.location,
+      startDate: eventData.startDate,
+      endDate: eventData.endDate,
+      judges: parseEventJudges(eventData.judgesRaw),
+      slug: eventData.slug,
+      createdAt: eventData.createdAt,
+    },
     categories,
     registrations: registrationsWithCategories,
     registrationCount: registrations.length,

@@ -4,7 +4,10 @@ import type { FormSubmitEvent } from "@nuxt/ui";
 interface EventFormState {
   title: string;
   description: string;
-  date: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  judges: { name: string }[];
   categories: string[];
 }
 
@@ -27,6 +30,16 @@ const emit = defineEmits<{
   submit: [event: FormSubmitEvent<EventFormState>];
   cancel: [];
 }>();
+
+const judgeTags = computed({
+  get: () => props.state.judges.map((judge) => judge.name),
+  set: (value: string[]) => {
+    props.state.judges = value
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0)
+      .map((name) => ({ name }));
+  },
+});
 </script>
 
 <template>
@@ -52,11 +65,41 @@ const emit = defineEmits<{
       />
     </UFormField>
 
-    <UFormField label="Date" name="date" required>
+    <UFormField label="Location" name="location" required>
       <UInput
-        v-model="props.state.date"
-        type="datetime-local"
-        placeholder="Event date"
+        v-model="props.state.location"
+        placeholder="e.g. Budapest"
+        class="w-full"
+      />
+    </UFormField>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <UFormField label="Start Date" name="startDate" required>
+        <UInput
+          v-model="props.state.startDate"
+          type="date"
+          class="w-full"
+        />
+      </UFormField>
+
+      <UFormField label="End Date" name="endDate" required>
+        <UInput
+          v-model="props.state.endDate"
+          type="date"
+          class="w-full"
+        />
+      </UFormField>
+    </div>
+
+    <UFormField
+      label="Judges"
+      name="judges"
+      help="Add judge name and press enter"
+    >
+      <UInputTags
+        v-model="judgeTags"
+        placeholder="e.g. Alex"
+        class="w-full"
       />
     </UFormField>
 

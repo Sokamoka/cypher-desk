@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const db = drizzle(event.context.cloudflare.env.DB);
 
   const existing = await db
-    .select()
+    .select({ id: events.id, userId: events.userId })
     .from(events)
     .where(eq(events.id, id))
     .then((rows) => rows[0]);

@@ -22,7 +22,10 @@ export default defineEventHandler(async (event) => {
       userId: user.id,
       title: validatedData.title,
       description: validatedData.description,
-      date: validatedData.date,
+      location: validatedData.location,
+      startDate: validatedData.startDate,
+      endDate: validatedData.endDate,
+      judges: validatedData.judges,
       slug,
     });
 

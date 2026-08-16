@@ -18,7 +18,10 @@ interface DashboardEvent {
   id: string;
   title: string;
   description: string | null;
-  date: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  judges: { name: string }[];
   slug: string;
   createdAt: string;
 }
@@ -44,14 +47,23 @@ const columns: TableColumn<DashboardEvent>[] = [
       },
     },
   },
-  { accessorKey: "date", header: "Date" },
+  { accessorKey: "startDate", header: "Dates" },
+  { accessorKey: "location", header: "Location" },
   { accessorKey: "slug", header: "Public link" },
   { accessorKey: "createdAt", header: "Created" },
   { id: "actions", header: "" },
 ];
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString();
+  return new Date(value).toLocaleDateString();
+}
+
+function formatDateRange(startDate: string, endDate: string) {
+  if (startDate === endDate) {
+    return formatDate(startDate);
+  }
+
+  return `${formatDate(startDate)} - ${formatDate(endDate)}`;
 }
 
 function publicUrl(slug: string) {
@@ -66,14 +78,20 @@ const creating = ref(false);
 const formState = reactive({
   title: "",
   description: "",
-  date: "",
+  location: "",
+  startDate: "",
+  endDate: "",
+  judges: [] as { name: string }[],
   categories: [] as string[],
 });
 
 function resetForm() {
   formState.title = "";
   formState.description = "";
-  formState.date = "";
+  formState.location = "";
+  formState.startDate = "";
+  formState.endDate = "";
+  formState.judges = [];
   formState.categories = [];
 }
 
@@ -167,8 +185,13 @@ async function onCreateEvent(event: FormSubmitEvent<CreateEvent>) {
           </div>
 
           <UTable v-else :data="events" :columns="columns">
-            <template #date-cell="{ row }">
-              {{ formatDate(row.original.date) }}
+            <template #startDate-cell="{ row }">
+              {{
+                formatDateRange(
+                  row.original.startDate,
+                  row.original.endDate,
+                )
+              }}
             </template>
 
             <template #slug-cell="{ row }">

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import {
   categoryPhases,
@@ -9,6 +9,7 @@ import {
   registrationCategories,
 } from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
+import { parseEventJudges } from "~~/server/utils/event-judges";
 
 export default defineEventHandler(async (event) => {
   const user = await requireSessionUser(event);
@@ -31,7 +32,10 @@ export default defineEventHandler(async (event) => {
       eventId: events.id,
       eventTitle: events.title,
       eventDescription: events.description,
-      eventDate: events.date,
+      eventLocation: events.location,
+      eventStartDate: events.startDate,
+      eventEndDate: events.endDate,
+      eventJudgesRaw: sql<string>`${events.judges}`.as("event_judges_raw"),
       eventSlug: events.slug,
       eventCreatedAt: events.createdAt,
       eventUserId: events.userId,
@@ -101,7 +105,10 @@ export default defineEventHandler(async (event) => {
       id: categoryContext.eventId,
       title: categoryContext.eventTitle,
       description: categoryContext.eventDescription,
-      date: categoryContext.eventDate,
+      location: categoryContext.eventLocation,
+      startDate: categoryContext.eventStartDate,
+      endDate: categoryContext.eventEndDate,
+      judges: parseEventJudges(categoryContext.eventJudgesRaw),
       slug: categoryContext.eventSlug,
       createdAt: categoryContext.eventCreatedAt,
     },
