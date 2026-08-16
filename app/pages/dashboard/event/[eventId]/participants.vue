@@ -8,6 +8,7 @@ definePageMeta({
 
 const route = useRoute();
 const eventId = computed(() => route.params.eventId as string);
+const toast = useToast();
 
 interface EventCategory {
   id: string;
@@ -73,7 +74,75 @@ const columns: TableColumn<Registration>[] = [
   { accessorKey: "participantEmail", header: "Email" },
   { id: "categories", header: "Categories" },
   { accessorKey: "createdAt", header: "Registered At" },
+  { id: "actions", header: "Actions" },
 ];
+
+interface EditingRegistration {
+  id: number;
+  participantName: string;
+  participantEmail: string;
+  categoryIds: string[];
+}
+
+const isFormModalOpen = ref(false);
+const editingRegistration = ref<EditingRegistration | null>(null);
+const isSubmitting = ref(false);
+
+const isDeleteModalOpen = ref(false);
+const deletingRegistration = ref<Registration | null>(null);
+const isDeleting = ref(false);
+
+function onAddParticipant() {
+  editingRegistration.value = null;
+  isFormModalOpen.value = true;
+}
+
+function onEditParticipant(registration: Registration) {
+  editingRegistration.value = {
+    id: registration.id,
+    participantName: registration.participantName,
+    participantEmail: registration.participantEmail,
+    categoryIds: registration.categories.map((category) => category.id),
+  };
+  isFormModalOpen.value = true;
+}
+
+async function onParticipantSaved() {
+  isFormModalOpen.value = false;
+  editingRegistration.value = null;
+  await execute();
+}
+
+function onDeleteParticipant(registration: Registration) {
+  deletingRegistration.value = registration;
+  isDeleteModalOpen.value = true;
+}
+
+async function onConfirmDelete() {
+  if (!deletingRegistration.value) return;
+
+  isDeleting.value = true;
+
+  try {
+    await $fetch(
+      `/api/events/${eventId.value}/registrations/${deletingRegistration.value.id}`,
+      { method: "DELETE" },
+    );
+
+    toast.add({ title: "Participant deleted", color: "success" });
+    isDeleteModalOpen.value = false;
+    deletingRegistration.value = null;
+    await execute();
+  } catch (err: any) {
+    toast.add({
+      title: "Failed to delete participant",
+      description: err?.data?.message ?? "Please try again",
+      color: "error",
+    });
+  } finally {
+    isDeleting.value = false;
+  }
+}
 </script>
 
 <template>
@@ -114,6 +183,7 @@ const columns: TableColumn<Registration>[] = [
             icon="i-lucide-plus"
             variant="solid"
             color="success"
+            @click="onAddParticipant"
           />
         </template>
       </UDashboardToolbar>
@@ -175,10 +245,87 @@ const columns: TableColumn<Registration>[] = [
                   {{ formatDate(row.original.createdAt) }}
                 </span>
               </template>
+
+              <template #actions-cell="{ row }">
+                <div class="flex items-center gap-2">
+                  <UButton
+                    icon="i-lucide-pencil"
+                    variant="ghost"
+                    color="neutral"
+                    size="sm"
+                    aria-label="Edit participant"
+                    @click="onEditParticipant(row.original)"
+                  />
+                  <UButton
+                    icon="i-lucide-trash-2"
+                    variant="ghost"
+                    color="error"
+                    size="sm"
+                    aria-label="Delete participant"
+                    @click="onDeleteParticipant(row.original)"
+                  />
+                </div>
+              </template>
             </UTable>
           </UCard>
         </template>
       </div>
+
+      <UModal
+        v-model:open="isFormModalOpen"
+        :title="editingRegistration ? 'Edit Participant' : 'Add Participant'"
+        :ui="{ footer: 'justify-end' }"
+      >
+        <template #body>
+          <EventRegistrationForm
+            id="participant-form"
+            v-model:submitting="isSubmitting"
+            :event-id="eventId"
+            :categories="data?.categories ?? []"
+            :registration="editingRegistration"
+            mode="dashboard"
+            :show-submit-button="false"
+            @submitted="onParticipantSaved"
+          />
+        </template>
+
+        <template #footer="{ close }">
+          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+          <UButton
+            form="participant-form"
+            type="submit"
+            :label="editingRegistration ? 'Save' : 'Create'"
+            color="primary"
+            :loading="isSubmitting"
+          />
+        </template>
+      </UModal>
+
+      <UModal
+        v-model:open="isDeleteModalOpen"
+        title="Delete Participant"
+        :ui="{ footer: 'justify-end' }"
+      >
+        <template #body>
+          <p class="text-muted">
+            Are you sure you want to delete
+            <span class="font-medium text-highlighted">{{
+              deletingRegistration?.participantName
+            }}</span>
+            ? This action cannot be undone.
+          </p>
+        </template>
+
+        <template #footer="{ close }">
+          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+          <UButton
+            label="Delete"
+            color="error"
+            :loading="isDeleting"
+            @click="onConfirmDelete"
+          />
+        </template>
+      </UModal>
     </template>
   </UDashboardPanel>
 </template>

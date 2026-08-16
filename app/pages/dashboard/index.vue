@@ -126,7 +126,7 @@ async function onCreateEvent(event: FormSubmitEvent<CreateEvent>) {
           <UButton
             label="Create Event"
             icon="i-lucide-plus"
-            color="primary"
+            color="success"
             @click="isCreateModalOpen = true"
           />
         </template>

@@ -1,11 +1,4 @@
 <script setup lang="ts">
-import * as v from "valibot";
-import type { FormSubmitEvent } from "@nuxt/ui";
-import {
-  CreateEventRegistrationSchema,
-  type CreateEventRegistration,
-} from "~~/utils/schemas";
-
 definePageMeta({
   layout: "default",
 });
@@ -34,7 +27,6 @@ const items = [
 
 const route = useRoute();
 const router = useRouter();
-const toast = useToast();
 
 interface EventCategory {
   id: string;
@@ -85,53 +77,10 @@ function formatDate(value: string) {
 }
 
 const registered = ref(false);
-const submitting = ref(false);
 
-const formState = reactive({
-  participantName: "",
-  participantEmail: "",
-  categoryIds: [] as string[],
-});
-
-// Require at least one category when the event has any, in addition to the
-// base registration schema.
-const registrationSchema = computed(() =>
-  hasCategories.value
-    ? v.pipe(
-        CreateEventRegistrationSchema,
-        v.forward(
-          v.partialCheck(
-            [["categoryIds"]],
-            (input) => input.categoryIds.length > 0,
-            "Please select at least one category",
-          ),
-          ["categoryIds"],
-        ),
-      )
-    : CreateEventRegistrationSchema,
-);
-
-async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
-  submitting.value = true;
-
-  try {
-    await $fetch(`/api/public/events/${route.params.id}/register`, {
-      method: "POST",
-      body: event.data,
-    });
-
-    registered.value = true;
-    toast.add({ title: "Registration submitted", color: "success" });
-    await refresh();
-  } catch (err: any) {
-    toast.add({
-      title: "Registration failed",
-      description: err?.data?.message ?? "Please try again",
-      color: "error",
-    });
-  } finally {
-    submitting.value = false;
-  }
+async function onRegistered() {
+  registered.value = true;
+  await refresh();
 }
 </script>
 
@@ -222,49 +171,13 @@ async function onRegister(event: FormSubmitEvent<CreateEventRegistration>) {
               </div>
             </div>
 
-            <UForm
+            <EventRegistrationForm
               v-else
-              :schema="registrationSchema"
-              :state="formState"
-              class="space-y-4"
-              @submit="onRegister"
-            >
-              <UFormField label="Name" name="participantName" required>
-                <UInput
-                  v-model="formState.participantName"
-                  placeholder="Your name"
-                />
-              </UFormField>
-
-              <UFormField label="Email" name="participantEmail" required>
-                <UInput
-                  v-model="formState.participantEmail"
-                  type="email"
-                  placeholder="you@example.com"
-                />
-              </UFormField>
-
-              <UFormField
-                v-if="hasCategories"
-                label="Categories"
-                name="categoryIds"
-                required
-              >
-                <UCheckboxGroup
-                  v-model="formState.categoryIds"
-                  :items="
-                    eventData.categories.map((c) => ({
-                      label: c.name,
-                      value: c.id,
-                    }))
-                  "
-                />
-              </UFormField>
-
-              <UButton type="submit" block :loading="submitting">
-                Register
-              </UButton>
-            </UForm>
+              :event-id="eventData.id"
+              :categories="eventData.categories"
+              mode="public"
+              @submitted="onRegistered"
+            />
           </UCard>
         </template>
       </UTabs>
