@@ -10,6 +10,7 @@ import {
   registrationCategories,
 } from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
+import { broadcastToPhase } from "~~/server/utils/ws-rooms";
 import { SaveBoardScoreSchema } from "~~/utils/schemas";
 
 export default defineEventHandler(async (event) => {
@@ -95,6 +96,20 @@ export default defineEventHandler(async (event) => {
           updatedAt: sql`CURRENT_TIMESTAMP`,
         },
       });
+
+    try {
+      broadcastToPhase(phaseId, {
+        type: "score-updated",
+        eventId: phaseContext.eventId,
+        categoryId: phaseContext.categoryId,
+        phaseId,
+        participantId: validatedData.participantId,
+        sliderValue: validatedData.sliderValue,
+      });
+    } catch (broadcastError) {
+      // A broadcast failure must never fail the save request itself.
+      console.error("Failed to broadcast board score update:", broadcastError);
+    }
 
     return {
       success: true,

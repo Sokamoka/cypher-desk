@@ -8,6 +8,9 @@ export default defineNuxtConfig({
   css: ["~~/assets/css/main.css"],
   nitro: {
     preset: "cloudflare_pages",
+    experimental: {
+      websocket: true,
+    },
   },
   typescript: {
     strict: true,

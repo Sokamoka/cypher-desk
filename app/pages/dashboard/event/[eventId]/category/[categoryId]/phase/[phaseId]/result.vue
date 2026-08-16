@@ -33,6 +33,15 @@ interface ParticipantResult {
   rank: number;
 }
 
+interface ScoreUpdatedMessage {
+  type: "score-updated";
+  eventId: string;
+  categoryId: string;
+  phaseId: string;
+  participantId: number;
+  sliderValue: number;
+}
+
 const { data, pending, error } = await useFetch<{
   success: boolean;
   event: ResultEvent;
@@ -44,7 +53,6 @@ const { data, pending, error } = await useFetch<{
 const eventData = computed(() => data.value?.event ?? null);
 const categoryData = computed(() => data.value?.category ?? null);
 const phaseData = computed(() => data.value?.phase ?? null);
-const results = computed(() => data.value?.results ?? []);
 const breadcrumbItems = useDashboardEventBreadcrumbs({
   eventId,
   categoryId,
@@ -53,6 +61,67 @@ const breadcrumbItems = useDashboardEventBreadcrumbs({
   categoryLabel: computed(() => categoryData.value?.name),
   phaseLabel: computed(() => phaseData.value?.name),
   currentLabel: "Results",
+});
+
+// `results` needs to be mutable (not a computed) so live WebSocket updates
+// can patch scores in place without waiting for a refetch.
+const results = ref<ParticipantResult[]>([]);
+
+watchEffect(() => {
+  if (data.value) {
+    results.value = data.value.results;
+  }
+});
+
+// Ranks participants the same way `server/api/phases/[id]/result.get.ts`
+// does: highest score first, unscored participants last (alphabetically
+// among themselves). Kept in sync manually since the sort also runs
+// server-side on initial load.
+function rankResults(participants: ParticipantResult[]) {
+  return [...participants]
+    .sort((a, b) => {
+      if (a.score === null && b.score === null) {
+        return a.name.localeCompare(b.name);
+      }
+      if (a.score === null) return 1;
+      if (b.score === null) return -1;
+      return b.score - a.score;
+    })
+    .map((participant, index) => ({ ...participant, rank: index + 1 }));
+}
+
+const wsUrl = computed(() => {
+  if (import.meta.server) return "";
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/ws/${phaseId.value}`;
+});
+
+const { data: wsData } = useWebSocket(wsUrl, {
+  autoReconnect: true,
+  immediate: true,
+});
+
+watch(wsData, (rawMessage) => {
+  if (!rawMessage) return;
+
+  let message: ScoreUpdatedMessage;
+  try {
+    message = JSON.parse(rawMessage);
+  } catch (parseError) {
+    console.error("Failed to parse WebSocket message:", parseError);
+    return;
+  }
+
+  if (message.type !== "score-updated" || message.phaseId !== phaseId.value) {
+    return;
+  }
+
+  const updated = results.value.map((participant) =>
+    participant.id === message.participantId
+      ? { ...participant, score: message.sliderValue }
+      : participant,
+  );
+  results.value = rankResults(updated);
 });
 
 useSeoMeta({
