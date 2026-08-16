@@ -107,7 +107,7 @@ const columns: TableColumn<ParticipantResult>[] = [
         </div>
 
         <template v-else>
-          <UCard>
+          <!-- <UCard>
             <template #header>
               <div>
                 <h2 class="text-lg font-semibold">{{ eventData.title }}</h2>
@@ -116,9 +116,9 @@ const columns: TableColumn<ParticipantResult>[] = [
                 </p>
               </div>
             </template>
-          </UCard>
+          </UCard> -->
 
-          <UCard>
+          <UCard :ui="{ body: 'p-0 sm:p-0' }">
             <template #header>
               <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold">Results</h2>

@@ -13,7 +13,10 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@iconify-json/lucide": "^1.2.123",
     "@nuxt/ui": "^4.10.0",
+    "@vueuse/core": "^14.4.0",
+    "@vueuse/nuxt": "^14.4.0",
     "better-auth": "^1.6.26",
     "drizzle-orm": "^0.45.2",
     "motion-v": "^2.3.0",
@@ -24,7 +27,6 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260804.1",
-    "@iconify-json/lucide": "^1.2.123",
     "@libsql/client": "^0.17.4",
     "drizzle-kit": "^0.31.10",
     "typescript": "^6.0.3",
