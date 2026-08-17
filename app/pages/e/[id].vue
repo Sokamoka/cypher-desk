@@ -148,6 +148,7 @@ async function onRegistered() {
                   :key="judge.name"
                   variant="subtle"
                   color="neutral"
+                  size="lg"
                 >
                   {{ judge.name }}
                 </UBadge>
