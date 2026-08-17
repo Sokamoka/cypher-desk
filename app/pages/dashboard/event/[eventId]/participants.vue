@@ -4,6 +4,7 @@ import type { TableColumn } from "@nuxt/ui";
 definePageMeta({
   layout: "dashboard",
   middleware: "auth",
+  name: "participants",
 });
 
 const route = useRoute();
@@ -173,6 +174,10 @@ async function onConfirmDelete() {
       </UDashboardNavbar>
 
       <UDashboardToolbar>
+        <template #left>
+          <DashboardEventButtonGroup :eventId />
+        </template>
+
         <template #right>
           <UButton
             label="Refresh"
@@ -293,7 +298,12 @@ async function onConfirmDelete() {
         </template>
 
         <template #footer="{ close }">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+          <UButton
+            label="Cancel"
+            color="neutral"
+            variant="outline"
+            @click="close"
+          />
           <UButton
             form="participant-form"
             type="submit"
@@ -320,7 +330,12 @@ async function onConfirmDelete() {
         </template>
 
         <template #footer="{ close }">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+          <UButton
+            label="Cancel"
+            color="neutral"
+            variant="outline"
+            @click="close"
+          />
           <UButton
             label="Delete"
             color="error"

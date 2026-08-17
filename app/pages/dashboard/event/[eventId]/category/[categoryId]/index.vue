@@ -198,7 +198,7 @@ const columns: TableColumn<PhaseTableRow>[] = [
             variant="solid"
           /> -->
 
-          <UCard>
+          <UCard :ui="{ body: 'p-0 sm:p-0' }">
             <template #header>
               <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold">Category Phases</h2>

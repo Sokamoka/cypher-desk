@@ -7,7 +7,7 @@ const EditEventFormSchema = CreateEventSchema;
 definePageMeta({
   layout: "dashboard",
   middleware: "auth",
-  name: "info",
+  name: "categories",
 });
 
 const route = useRoute();
@@ -42,27 +42,16 @@ const categories = computed(() => data.value?.categories ?? []);
 const breadcrumbItems = useDashboardEventBreadcrumbs({
   eventId,
   eventLabel: computed(() => eventData.value?.title),
-  currentLabel: "Info",
+  currentLabel: "Categories",
 });
 
 useSeoMeta({
-  title: () => (eventData.value ? `${eventData.value.title} — Info` : "Event"),
+  title: () =>
+    eventData.value ? `${eventData.value.title} — Categories` : "Event",
 });
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString();
-}
-
-function formatDateRange(startDate: string, endDate: string) {
-  if (startDate === endDate) {
-    return formatDate(startDate);
-  }
-
-  return `${formatDate(startDate)} - ${formatDate(endDate)}`;
-}
-
-function publicUrl(slug: string) {
-  return `/e/${slug}`;
 }
 
 const isEditModalOpen = ref(false);
@@ -147,10 +136,10 @@ async function onUpdateEvent() {
   }
 }
 
-// const columns: TableColumn<EventCategory>[] = [
-//   { accessorKey: "name", header: "Category" },
-//   { id: "actions", header: "" },
-// ];
+const columns: TableColumn<EventCategory>[] = [
+  { accessorKey: "name", header: "Category" },
+  { id: "actions", header: "" },
+];
 </script>
 
 <template>
@@ -169,19 +158,6 @@ async function onUpdateEvent() {
       <UDashboardToolbar>
         <template #left>
           <DashboardEventButtonGroup :eventId />
-          <!-- <UButton
-            label="Participants"
-            icon="i-lucide-users"
-            color="secondary"
-            :to="`/dashboard/event/${eventId}/participants`"
-          />
-          <UButton
-            label="Categories"
-            icon="i-lucide-layers"
-            color="neutral"
-            variant="soft"
-            :to="`/dashboard/event/${eventId}/category`"
-          /> -->
         </template>
 
         <template #right>
@@ -212,42 +188,7 @@ async function onUpdateEvent() {
         </div>
 
         <template v-else>
-          <UCard>
-            <template #header>
-              <div class="flex items-center justify-between">
-                <div>
-                  <h2 class="text-lg font-semibold">{{ eventData.title }}</h2>
-                  <p class="text-sm text-muted">
-                    {{
-                      formatDateRange(eventData.startDate, eventData.endDate)
-                    }}
-                  </p>
-                  <p class="text-sm text-muted">{{ eventData.location }}</p>
-                </div>
-                <ULink :to="publicUrl(eventData.slug)" target="_blank">
-                  {{ publicUrl(eventData.slug) }}
-                </ULink>
-              </div>
-            </template>
-
-            <p v-if="eventData.description">{{ eventData.description }}</p>
-            <div
-              v-if="eventData.judges?.length"
-              class="mt-4 flex flex-wrap items-center gap-2"
-            >
-              <span class="text-sm text-muted">Judges:</span>
-              <UBadge
-                v-for="judge in eventData.judges"
-                :key="judge.name"
-                color="neutral"
-                variant="subtle"
-              >
-                {{ judge.name }}
-              </UBadge>
-            </div>
-          </UCard>
-
-          <!-- <UCard>
+          <UCard :ui="{ body: 'p-0 sm:p-0' }">
             <template #header>
               <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold">Categories</h2>
@@ -276,7 +217,7 @@ async function onUpdateEvent() {
                 </div>
               </template>
             </UTable>
-          </UCard> -->
+          </UCard>
         </template>
       </div>
 
