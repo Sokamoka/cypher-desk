@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { AccordionItem, TableColumn } from "@nuxt/ui";
+
 definePageMeta({
   layout: "default",
 });
@@ -9,7 +11,6 @@ const items = [
     icon: "i-lucide-user",
     value: "live",
     slot: "live",
-    disabled: true,
   },
   {
     label: "Participants",
@@ -24,6 +25,8 @@ const items = [
     slot: "registration",
   },
 ];
+
+const accordionValue = ref("1");
 
 const route = useRoute();
 const router = useRouter();
@@ -56,6 +59,12 @@ const hasCategories = computed(
   () => (eventData.value?.categories.length ?? 0) > 0,
 );
 
+const categoryColumns: TableColumn<EventCategory>[] = [
+  { accessorKey: "name", header: "Category" },
+  { id: "participantCount", header: "Participants" },
+  // { id: "participants", header: "Registered participants" },
+];
+
 useSeoMeta({
   title: () => eventData.value?.title ?? "Event",
   description: () => eventData.value?.description ?? "Public event page",
@@ -74,6 +83,17 @@ const active = computed({
     });
   },
 });
+
+const accordionItems = computed((): AccordionItem[] => [
+  {
+    label: "Description",
+    content: eventData.value?.description ?? "",
+  },
+  {
+    label: "Judges",
+    slot: "judges" as const,
+  },
+]);
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString();
@@ -109,42 +129,63 @@ async function onRegistered() {
     <div v-else class="space-y-8">
       <div>
         <h1 class="text-3xl font-bold">{{ eventData.title }}</h1>
-        <p class="mt-2 text-muted">
-          {{ formatDateRange(eventData.startDate, eventData.endDate) }}
-        </p>
-        <p class="text-muted">{{ eventData.location }}</p>
-        <div v-if="eventData.judges?.length" class="mt-3 flex flex-wrap gap-2">
-          <UBadge
-            v-for="judge in eventData.judges"
-            :key="judge.name"
-            variant="subtle"
-            color="neutral"
+        <div class="flex items-center gap-3 mt-2">
+          <UUser
+            :name="formatDateRange(eventData.startDate, eventData.endDate)"
           >
-            {{ judge.name }}
-          </UBadge>
+            <template #avatar><UIcon name="i-lucide-calendar" /></template>
+          </UUser>
+          <UUser :name="eventData.location">
+            <template #avatar><UIcon name="i-lucide-map-pin" /></template>
+          </UUser>
         </div>
-        <UCollapsible v-if="eventData.description">
-          <UButton
-            class="group"
-            label="Description"
-            variant="link"
-            trailing-icon="i-lucide-chevron-down"
-            :ui="{
-              base: 'px-0',
-              trailingIcon:
-                'group-data-[state=open]:rotate-180 transition-transform duration-200',
-            }"
-          />
-
-          <template #content>
-            <p>
-              {{ eventData.description }}
-            </p>
-          </template>
-        </UCollapsible>
+        <UCard class="mt-5" :ui="{ body: 'pt-3 sm:pt-3' }">
+          <UAccordion v-model="accordionValue" :items="accordionItems">
+            <template #judges>
+              <div v-if="eventData.judges?.length" class="flex flex-wrap gap-2">
+                <UBadge
+                  v-for="judge in eventData.judges"
+                  :key="judge.name"
+                  variant="subtle"
+                  color="neutral"
+                >
+                  {{ judge.name }}
+                </UBadge>
+              </div>
+            </template>
+          </UAccordion>
+        </UCard>
       </div>
 
       <UTabs v-model="active" :items="items" variant="link">
+        <template #live>
+          <div v-if="hasCategories" class="overflow-x-auto">
+            <UTable :data="eventData.categories" :columns="categoryColumns">
+              <template #participantCount-cell="{ row }">
+                {{ row.original.participants.length }}
+              </template>
+
+              <!-- <template #participants-cell="{ row }">
+                <div
+                  v-if="row.original.participants.length"
+                  class="flex flex-wrap gap-1"
+                >
+                  <UBadge
+                    v-for="name in row.original.participants"
+                    :key="name"
+                    variant="subtle"
+                    color="neutral"
+                  >
+                    {{ name }}
+                  </UBadge>
+                </div>
+                <span v-else class="text-muted">No participants yet.</span>
+              </template> -->
+            </UTable>
+          </div>
+          <p v-else class="text-muted">No categories available.</p>
+        </template>
+
         <template #participants>
           <UCard v-if="hasCategories" variant="soft">
             <template #header>
