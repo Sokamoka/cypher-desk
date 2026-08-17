@@ -55,6 +55,10 @@ const route = useRoute();
 const eventId = computed(() => route.params.eventId as string);
 const categoryId = computed(() => route.params.categoryId as string);
 const openPreselectionModal = ref(false);
+const openDeleteModal = ref(false);
+const selectedPhaseForDeletion = ref<PhaseTableRow | null>(null);
+const deletingPhase = ref(false);
+const toast = useToast();
 
 const { data, pending, error, refresh } = await useFetch<{
   success: boolean;
@@ -111,6 +115,34 @@ function formatDate(value: string) {
 function onPreselectionCreated() {
   openPreselectionModal.value = false;
   refresh();
+}
+
+function openDeleteConfirmation(phase: PhaseTableRow) {
+  selectedPhaseForDeletion.value = phase;
+  openDeleteModal.value = true;
+}
+
+async function deleteSelectedPhase() {
+  const phase = selectedPhaseForDeletion.value;
+  if (!phase) return;
+
+  deletingPhase.value = true;
+
+  try {
+    await $fetch(`/api/phases/${phase.id}`, { method: "DELETE" });
+    openDeleteModal.value = false;
+    selectedPhaseForDeletion.value = null;
+    toast.add({ title: "Phase deleted", color: "success" });
+    await refresh();
+  } catch {
+    toast.add({
+      title: "Failed to delete phase",
+      description: "Please try again.",
+      color: "error",
+    });
+  } finally {
+    deletingPhase.value = false;
+  }
 }
 
 const columns: TableColumn<PhaseTableRow>[] = [
@@ -247,6 +279,16 @@ const columns: TableColumn<PhaseTableRow>[] = [
                   >
                     Results
                   </UButton>
+                  <UTooltip text="Delete phase">
+                    <UButton
+                      icon="i-lucide-trash-2"
+                      variant="ghost"
+                      color="error"
+                      size="sm"
+                      aria-label="Delete phase"
+                      @click="openDeleteConfirmation(row.original)"
+                    />
+                  </UTooltip>
                 </div>
               </template>
             </UTable>
@@ -280,6 +322,41 @@ const columns: TableColumn<PhaseTableRow>[] = [
             type="submit"
             label="Create"
             color="primary"
+          />
+        </template>
+      </UModal>
+
+      <UModal
+        v-model:open="openDeleteModal"
+        title="Delete phase"
+        description="This permanently deletes the phase and its board data."
+        :ui="{ footer: 'justify-end' }"
+        @update:open="
+          (isOpen) => {
+            if (!isOpen && !deletingPhase) selectedPhaseForDeletion = null;
+          }
+        "
+      >
+        <template #body>
+          <p>
+            Delete <strong>{{ selectedPhaseForDeletion?.name }}</strong
+            >?
+          </p>
+        </template>
+
+        <template #footer="{ close }">
+          <UButton
+            label="Cancel"
+            color="neutral"
+            variant="outline"
+            :disabled="deletingPhase"
+            @click="close"
+          />
+          <UButton
+            label="Delete phase"
+            color="error"
+            :loading="deletingPhase"
+            @click="deleteSelectedPhase"
           />
         </template>
       </UModal>
