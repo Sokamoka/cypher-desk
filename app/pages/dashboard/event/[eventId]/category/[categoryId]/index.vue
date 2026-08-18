@@ -39,6 +39,12 @@ interface CategoryWithPhases {
   id: string;
   name: string;
   createdAt: string;
+  registrations: {
+    id: number;
+    participantName: string;
+    participantEmail: string;
+    createdAt: string;
+  }[];
   phases: CategoryPhase[];
 }
 
@@ -306,6 +312,8 @@ const columns: TableColumn<PhaseTableRow>[] = [
             id="preselection"
             :event-id="selectedEventId"
             :category-id="selectedCategoryId"
+            :judges="eventData?.judges ?? []"
+            :participants="selectedCategory?.registrations ?? []"
             @submitted="onPreselectionCreated"
           />
         </template>

@@ -116,6 +116,10 @@ export default defineEventHandler(async (event) => {
       id: categoryContext.categoryId,
       name: categoryContext.categoryName,
       createdAt: categoryContext.categoryCreatedAt,
+      // Exposed independently of `phases` so the "create preselection" form
+      // can preview/submit a participant distribution before any
+      // preselection phase exists yet for this category.
+      registrations: categoryRegistrations,
       phases,
     },
   };

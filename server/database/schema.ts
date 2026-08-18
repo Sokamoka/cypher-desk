@@ -166,6 +166,43 @@ export const preselectionPhases = sqliteTable('preselection_phases', {
   groupSize: integer('group_size').notNull(),
 });
 
+// One row per cypher within a preselection phase, storing the judges
+// assigned to evaluate that specific cypher. A phase with `numberOfCypher`
+// cyphers has exactly that many rows here (created together at phase
+// creation time).
+export const preselectionCyphers = sqliteTable('preselection_cyphers', {
+  id: text('id').primaryKey(),
+  phaseId: text('phase_id')
+    .notNull()
+    .references(() => categoryPhases.id, { onDelete: 'cascade' }),
+  cypherIndex: integer('cypher_index').notNull(),
+  judges: text('judges', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Many-to-one join assigning each participant (registration) to exactly one
+// cypher within a preselection phase. Populated by a random, as-even-as
+// -possible shuffle at phase creation time.
+export const preselectionCypherParticipants = sqliteTable(
+  'preselection_cypher_participants',
+  {
+    cypherId: text('cypher_id')
+      .notNull()
+      .references(() => preselectionCyphers.id, { onDelete: 'cascade' }),
+    registrationId: integer('registration_id')
+      .notNull()
+      .references(() => eventRegistrations.id, { onDelete: 'cascade' }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.cypherId, table.registrationId] }),
+  }),
+);
+
 // One row per phase, tracking whether the organizer has started the
 // evaluation ("board") for that specific phase. Created lazily on first
 // GET/start call. Keyed by phase (not event) because a single event can run
@@ -245,6 +282,14 @@ export type NewCategoryPhase = typeof categoryPhases.$inferInsert;
 
 export type PreselectionPhase = typeof preselectionPhases.$inferSelect;
 export type NewPreselectionPhase = typeof preselectionPhases.$inferInsert;
+
+export type PreselectionCypher = typeof preselectionCyphers.$inferSelect;
+export type NewPreselectionCypher = typeof preselectionCyphers.$inferInsert;
+
+export type PreselectionCypherParticipant =
+  typeof preselectionCypherParticipants.$inferSelect;
+export type NewPreselectionCypherParticipant =
+  typeof preselectionCypherParticipants.$inferInsert;
 
 export type PhaseBoard = typeof phaseBoards.$inferSelect;
 export type NewPhaseBoard = typeof phaseBoards.$inferInsert;

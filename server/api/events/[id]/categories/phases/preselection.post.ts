@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import * as v from "valibot";
 import {
@@ -6,11 +6,15 @@ import {
   eventCategories,
   eventRegistrations,
   events,
+  preselectionCypherParticipants,
+  preselectionCyphers,
   preselectionPhases,
   registrationCategories,
 } from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
-import { CreatePreselectionPhaseSchema } from "~~/utils/schemas";
+import { parseEventJudges } from "~~/server/utils/event-judges";
+import { createPreselectionPhaseSchema } from "~~/utils/schemas";
+import { shuffleParticipants } from "~~/utils/cypher";
 
 export default defineEventHandler(async (event) => {
   const user = await requireSessionUser(event);
@@ -26,7 +30,11 @@ export default defineEventHandler(async (event) => {
   const db = drizzle(event.context.cloudflare.env.DB);
 
   const eventData = await db
-    .select({ id: events.id, userId: events.userId })
+    .select({
+      id: events.id,
+      userId: events.userId,
+      judgesRaw: sql<string>`${events.judges}`.as("event_judges_raw"),
+    })
     .from(events)
     .where(eq(events.id, eventId))
     .then((rows) => rows[0]);
@@ -39,8 +47,29 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    const eventJudges = parseEventJudges(eventData.judgesRaw);
+    const judgeNames = new Set(eventJudges.map((judge) => judge.name));
+
     const body = await readBody(event);
-    const validatedData = v.parse(CreatePreselectionPhaseSchema, body);
+    const validatedData = v.parse(
+      createPreselectionPhaseSchema(eventJudges.length),
+      body,
+    );
+
+    // Defense-in-depth: never trust client-supplied judge names blindly —
+    // every selected judge must actually belong to this event.
+    const hasUnknownJudge = validatedData.cyphers.some((cypher) =>
+      cypher.judges.some((judgeName) => !judgeNames.has(judgeName)),
+    );
+    if (hasUnknownJudge) {
+      return sendError(
+        event,
+        createError({
+          statusCode: 400,
+          message: "Invalid judge selection",
+        }),
+      );
+    }
 
     const category = await db
       .select({ id: eventCategories.id })
@@ -93,6 +122,58 @@ export default defineEventHandler(async (event) => {
         ),
       );
 
+    // Randomly shuffle & split participants as evenly as possible across
+    // `numberOfCypher` groups, then persist each cypher's judges and its
+    // assigned participants.
+    const participantGroups = shuffleParticipants(
+      categoryRegistrations,
+      validatedData.numberOfCypher,
+    );
+
+    const cyphers = [];
+    const cypherParticipantRows: { cypherId: string; registrationId: number }[] =
+      [];
+
+    for (let index = 0; index < validatedData.numberOfCypher; index++) {
+      const cypherId = `cypher_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 9)}`;
+      const cypherJudges = validatedData.cyphers[index]?.judges ?? [];
+      const participants = participantGroups[index] ?? [];
+
+      cyphers.push({
+        id: cypherId,
+        index: index + 1,
+        judges: cypherJudges,
+        participants,
+      });
+
+      for (const participant of participants) {
+        cypherParticipantRows.push({
+          cypherId,
+          registrationId: participant.id,
+        });
+      }
+    }
+
+    if (cyphers.length > 0) {
+      await db.insert(preselectionCyphers).values(
+        cyphers.map((cypher) => ({
+          id: cypher.id,
+          phaseId,
+          cypherIndex: cypher.index,
+          judges: cypher.judges,
+        })),
+      );
+    }
+
+    if (cypherParticipantRows.length > 0) {
+      await db.insert(preselectionCypherParticipants).values(
+        cypherParticipantRows.map((row) => ({
+          cypherId: row.cypherId,
+          registrationId: row.registrationId,
+        })),
+      );
+    }
+
     return {
       success: true,
       phase: {
@@ -104,6 +185,12 @@ export default defineEventHandler(async (event) => {
           numberOfCypher: validatedData.numberOfCypher,
           groupSize: validatedData.groupSize,
           categoryRegistrations,
+          cyphers: cyphers.map((cypher) => ({
+            id: cypher.id,
+            index: cypher.index,
+            judges: cypher.judges,
+            participants: cypher.participants,
+          })),
         },
       },
     };

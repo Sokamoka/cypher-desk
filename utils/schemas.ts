@@ -108,7 +108,23 @@ export type CreateEventRegistration = v.InferOutput<
   typeof CreateEventRegistrationSchema
 >;
 
-export const CreatePreselectionPhaseSchema = v.object({
+// Judges assigned to a single cypher within a preselection phase. At least
+// one judge is required; the maximum is enforced dynamically against the
+// event's actual judge count via `createPreselectionPhaseSchema` below (the
+// same judge may be assigned to multiple cyphers, so no cross-cypher
+// uniqueness check is applied here).
+export const PreselectionCypherInputSchema = v.object({
+  judges: v.pipe(
+    v.array(v.pipe(v.string(), v.minLength(1, "Judge name is required"))),
+    v.minLength(1, "Select at least one judge"),
+  ),
+});
+
+export type PreselectionCypherInput = v.InferOutput<
+  typeof PreselectionCypherInputSchema
+>;
+
+const PreselectionPhaseFieldsSchema = {
   categoryId: v.pipe(v.string(), v.minLength(1, "Category is required")),
   name: v.pipe(
     v.string(),
@@ -125,11 +141,55 @@ export const CreatePreselectionPhaseSchema = v.object({
     v.integer("Group size must be an integer"),
     v.minValue(1, "Group size must be at least 1"),
   ),
-});
+  cyphers: v.array(PreselectionCypherInputSchema),
+};
+
+// Base/back-compat schema used where the event's real judge count isn't
+// known ahead of time (e.g. type inference). Prefer
+// `createPreselectionPhaseSchema` when the judge count is available so each
+// cypher's judge selection is capped at the event's total judge count.
+export const CreatePreselectionPhaseSchema = v.pipe(
+  v.object(PreselectionPhaseFieldsSchema),
+  v.check(
+    (input) => input.cyphers.length === input.numberOfCypher,
+    "Judges must be assigned for each cypher",
+  ),
+);
 
 export type CreatePreselectionPhase = v.InferOutput<
   typeof CreatePreselectionPhaseSchema
 >;
+
+// Factory producing a stricter variant of `CreatePreselectionPhaseSchema`
+// that also caps each cypher's judge selection at `judgeCount` (the number
+// of judges assigned to the event). Used both client-side (bound reactively
+// to the event's judge list) and server-side (with the real, DB-sourced
+// judge count — never trusted from the client) for defense-in-depth.
+export function createPreselectionPhaseSchema(judgeCount: number) {
+  return v.pipe(
+    v.object({
+      ...PreselectionPhaseFieldsSchema,
+      cyphers: v.array(
+        v.object({
+          judges: v.pipe(
+            v.array(
+              v.pipe(v.string(), v.minLength(1, "Judge name is required")),
+            ),
+            v.minLength(1, "Select at least one judge"),
+            v.maxLength(
+              judgeCount,
+              `Select at most ${judgeCount} judge(s)`,
+            ),
+          ),
+        }),
+      ),
+    }),
+    v.check(
+      (input) => input.cyphers.length === input.numberOfCypher,
+      "Judges must be assigned for each cypher",
+    ),
+  );
+}
 
 // Event board score schema (POST /api/events/[id]/board). Slider values are
 // constrained to a 0-10 range to match the `<USlider>` used on the board page.

@@ -57,6 +57,13 @@
       "when": 1786901624709,
       "tag": "0007_fix_events_fk_after_rebuild",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1787036749364,
+      "tag": "0008_pink_nighthawk",
+      "breakpoints": true
     }
   ]
 }

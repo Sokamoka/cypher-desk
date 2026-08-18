@@ -3,12 +3,38 @@ import { drizzle } from "drizzle-orm/d1";
 import {
   categoryPhases,
   eventCategories,
-  events,
   eventRegistrations,
+  events,
   phaseBoardScores,
+  preselectionCypherParticipants,
+  preselectionCyphers,
   registrationCategories,
 } from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
+
+interface ParticipantResult {
+  id: number;
+  name: string;
+  score: number | null;
+  rank: number;
+}
+
+// Highest score first; participants without a score yet are pushed to the
+// bottom, ordered alphabetically among themselves.
+function rankResults(
+  participants: { id: number; name: string; score: number | null }[],
+): ParticipantResult[] {
+  return [...participants]
+    .sort((a, b) => {
+      if (a.score === null && b.score === null) {
+        return a.name.localeCompare(b.name);
+      }
+      if (a.score === null) return 1;
+      if (b.score === null) return -1;
+      return b.score - a.score;
+    })
+    .map((participant, index) => ({ ...participant, rank: index + 1 }));
+}
 
 export default defineEventHandler(async (event) => {
   const user = await requireSessionUser(event);
@@ -81,26 +107,77 @@ export default defineEventHandler(async (event) => {
     scores.map((score) => [score.participantId, score.sliderValue]),
   );
 
-  const results = registrations
-    .map((registration) => ({
-      id: registration.id,
-      name: registration.participantName,
-      score: scoreByParticipantId.get(registration.id) ?? null,
-    }))
-    // Highest score first; participants without a score yet are pushed to
-    // the bottom, ordered alphabetically among themselves.
-    .sort((a, b) => {
-      if (a.score === null && b.score === null) {
-        return a.name.localeCompare(b.name);
-      }
-      if (a.score === null) return 1;
-      if (b.score === null) return -1;
-      return b.score - a.score;
+  const participantById = new Map(
+    registrations.map((registration) => [
+      registration.id,
+      {
+        id: registration.id,
+        name: registration.participantName,
+        score: scoreByParticipantId.get(registration.id) ?? null,
+      },
+    ]),
+  );
+
+  // Cypher breakdown: every preselection phase has one row per cypher in
+  // `preselection_cyphers`, each carrying its assigned judges and, via
+  // `preselection_cypher_participants`, the participants shuffled into it
+  // at phase creation time. Rank independently within each cypher group.
+  const cypherRows = await db
+    .select({
+      cypherId: preselectionCyphers.id,
+      cypherIndex: preselectionCyphers.cypherIndex,
+      judges: preselectionCyphers.judges,
     })
-    .map((participant, index) => ({
-      ...participant,
-      rank: index + 1,
-    }));
+    .from(preselectionCyphers)
+    .where(eq(preselectionCyphers.phaseId, phaseId));
+
+  const cypherParticipantRows =
+    cypherRows.length > 0
+      ? await db
+          .select({
+            cypherId: preselectionCypherParticipants.cypherId,
+            registrationId: preselectionCypherParticipants.registrationId,
+          })
+          .from(preselectionCypherParticipants)
+          .innerJoin(
+            preselectionCyphers,
+            eq(
+              preselectionCypherParticipants.cypherId,
+              preselectionCyphers.id,
+            ),
+          )
+          .where(eq(preselectionCyphers.phaseId, phaseId))
+      : [];
+
+  const registrationIdsByCypherId = new Map<string, number[]>();
+  for (const row of cypherParticipantRows) {
+    const list = registrationIdsByCypherId.get(row.cypherId) ?? [];
+    list.push(row.registrationId);
+    registrationIdsByCypherId.set(row.cypherId, list);
+  }
+
+  const cyphers = cypherRows
+    .sort((a, b) => a.cypherIndex - b.cypherIndex)
+    .map((cypher) => {
+      const registrationIds =
+        registrationIdsByCypherId.get(cypher.cypherId) ?? [];
+      const participants = registrationIds
+        .map((registrationId) => participantById.get(registrationId))
+        .filter((participant): participant is NonNullable<typeof participant> =>
+          Boolean(participant),
+        );
+
+      return {
+        id: cypher.cypherId,
+        index: cypher.cypherIndex,
+        judges: cypher.judges,
+        results: rankResults(participants),
+      };
+    });
+
+  // Flat fallback ranking across all registrations — used when the phase
+  // has no cypher breakdown (e.g. non-preselection phase types).
+  const results = rankResults(Array.from(participantById.values()));
 
   return {
     success: true,
@@ -116,6 +193,7 @@ export default defineEventHandler(async (event) => {
       id: phaseContext.phaseId,
       name: phaseContext.phaseName,
     },
+    cyphers,
     results,
   };
 });
