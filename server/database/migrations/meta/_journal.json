@@ -64,6 +64,13 @@
       "when": 1787036749364,
       "tag": "0008_pink_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1787073087799,
+      "tag": "0009_friendly_hannibal_king",
+      "breakpoints": true
     }
   ]
 }

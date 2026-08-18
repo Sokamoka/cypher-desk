@@ -208,3 +208,25 @@ export const SaveBoardScoreSchema = v.object({
 });
 
 export type SaveBoardScore = v.InferOutput<typeof SaveBoardScoreSchema>;
+
+// Judge board score schema (POST /api/cyphers/[id]/judges/[judgeName]/scores).
+// Each judge assigned to a cypher submits their own 0-10 slider score for a
+// participant in that cypher — distinct from the organizer's aggregate
+// `SaveBoardScoreSchema` above.
+export const SaveCypherJudgeScoreSchema = v.object({
+  participantId: v.pipe(
+    v.number(),
+    v.integer("Participant ID must be an integer"),
+    v.minValue(1, "Participant ID is required"),
+  ),
+  sliderValue: v.pipe(
+    v.number(),
+    v.integer("Slider value must be an integer"),
+    v.minValue(0, "Slider value must be at least 0"),
+    v.maxValue(10, "Slider value must be at most 10"),
+  ),
+});
+
+export type SaveCypherJudgeScore = v.InferOutput<
+  typeof SaveCypherJudgeScoreSchema
+>;

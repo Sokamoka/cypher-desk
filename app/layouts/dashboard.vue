@@ -18,6 +18,14 @@ const links = [
         open.value = false;
       },
     },
+    {
+      label: "Judicial system",
+      icon: "i-lucide-calendar",
+      to: "/judges",
+      onSelect: () => {
+        open.value = false;
+      },
+    },
   ],
   // [
   //   {

@@ -249,6 +249,37 @@ export const phaseBoardScores = sqliteTable(
   }),
 );
 
+// One row per (cypher, judge, participant), storing that judge's individual
+// slider score for a participant within a specific cypher. Distinct from
+// `phaseBoardScores` (the organizer's single aggregate score per
+// phase+participant) — this table supports the self-service judges flow
+// where each named judge assigned to a cypher submits their own score.
+export const cypherJudgeScores = sqliteTable(
+  'cypher_judge_scores',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    cypherId: text('cypher_id')
+      .notNull()
+      .references(() => preselectionCyphers.id, { onDelete: 'cascade' }),
+    judgeName: text('judge_name').notNull(),
+    participantId: integer('participant_id')
+      .notNull()
+      .references(() => eventRegistrations.id, { onDelete: 'cascade' }),
+    sliderValue: integer('slider_value').notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    cypherJudgeParticipantUnique: uniqueIndex(
+      'cypher_judge_scores_cypher_judge_participant_unique',
+    ).on(table.cypherId, table.judgeName, table.participantId),
+  }),
+);
+
 // ---------------------------------------------------------------------------
 // Inferred types
 // ---------------------------------------------------------------------------
@@ -296,3 +327,6 @@ export type NewPhaseBoard = typeof phaseBoards.$inferInsert;
 
 export type PhaseBoardScore = typeof phaseBoardScores.$inferSelect;
 export type NewPhaseBoardScore = typeof phaseBoardScores.$inferInsert;
+
+export type CypherJudgeScore = typeof cypherJudgeScores.$inferSelect;
+export type NewCypherJudgeScore = typeof cypherJudgeScores.$inferInsert;
