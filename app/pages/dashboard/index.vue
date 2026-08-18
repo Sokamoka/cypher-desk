@@ -167,7 +167,7 @@ async function onCreateEvent(event: FormSubmitEvent<CreateEvent>) {
           </p>
         </div>
 
-        <UCard v-else>
+        <UCard v-else :ui="{ body: 'p-0 sm:p-0' }">
           <template #header>
             <div class="flex items-center justify-between">
               <h2 class="text-lg font-semibold">Events</h2>
@@ -187,10 +187,7 @@ async function onCreateEvent(event: FormSubmitEvent<CreateEvent>) {
           <UTable v-else :data="events" :columns="columns">
             <template #startDate-cell="{ row }">
               {{
-                formatDateRange(
-                  row.original.startDate,
-                  row.original.endDate,
-                )
+                formatDateRange(row.original.startDate, row.original.endDate)
               }}
             </template>
 
