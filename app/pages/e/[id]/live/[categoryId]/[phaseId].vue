@@ -1,11 +1,27 @@
 <script setup lang="ts">
 import type { TableColumn } from "@nuxt/ui";
 
-interface PhaseResult {
+interface ParticipantResult {
   id: number;
   name: string;
   score: number | null;
   rank: number;
+}
+
+interface CypherGroup {
+  id: string;
+  index: number;
+  judges: string[];
+  results: ParticipantResult[];
+}
+
+interface ScoreUpdatedMessage {
+  type: "score-updated";
+  eventId: string;
+  categoryId: string;
+  phaseId: string;
+  participantId: number;
+  sliderValue: number;
 }
 
 const route = useRoute();
@@ -27,16 +43,113 @@ const {
 } = await useFetch<{
   success: boolean;
   isPhaseStarted: boolean;
-  results: PhaseResult[];
+  cyphers: CypherGroup[];
+  results: ParticipantResult[];
 }>(() => `/api/public/phases/${phaseId.value}/result`);
 
 const categoryData = computed(() => data.value?.category ?? null);
 const phaseData = computed(() => data.value?.phase ?? null);
-const isPhaseStarted = computed(() => resultData.value?.isPhaseStarted ?? false);
-const results = computed(() => resultData.value?.results ?? []);
+const isPhaseStarted = computed(
+  () => resultData.value?.isPhaseStarted ?? false,
+);
 
-const resultColumns: TableColumn<PhaseResult>[] = [
-  { accessorKey: "rank", header: "#" },
+// `cyphers`/`results` need to be mutable (not computed) so live WebSocket
+// updates can patch scores in place without waiting for a refetch.
+const cyphers = ref<CypherGroup[]>([]);
+const results = ref<ParticipantResult[]>([]);
+
+watchEffect(() => {
+  if (resultData.value) {
+    cyphers.value = resultData.value.cyphers;
+    results.value = resultData.value.results;
+  }
+});
+
+const totalParticipants = computed(() =>
+  cyphers.value.length > 0
+    ? cyphers.value.reduce((sum, cypher) => sum + cypher.results.length, 0)
+    : results.value.length,
+);
+
+// Ranks participants the same way `server/api/public/phases/[phaseId]/result.get.ts`
+// does: highest score first, unscored participants last (alphabetically
+// among themselves). Kept in sync manually since the sort also runs
+// server-side on initial load.
+function rankResults(participants: ParticipantResult[]) {
+  return [...participants]
+    .sort((a, b) => {
+      if (a.score === null && b.score === null) {
+        return a.name.localeCompare(b.name);
+      }
+      if (a.score === null) return 1;
+      if (b.score === null) return -1;
+      return b.score - a.score;
+    })
+    .map((participant, index) => ({ ...participant, rank: index + 1 }));
+}
+
+const wsUrl = computed(() => {
+  if (import.meta.server) return "";
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/ws/${phaseId.value}`;
+});
+
+const { data: wsData } = useWebSocket(wsUrl, {
+  autoReconnect: true,
+  immediate: true,
+});
+
+watch(wsData, (rawMessage) => {
+  if (!rawMessage) return;
+
+  let message: ScoreUpdatedMessage;
+  try {
+    message = JSON.parse(rawMessage);
+  } catch (parseError) {
+    console.error("Failed to parse WebSocket message:", parseError);
+    return;
+  }
+
+  if (message.type !== "score-updated" || message.phaseId !== phaseId.value) {
+    return;
+  }
+
+  if (cyphers.value.length > 0) {
+    // Patch the score inside its owning cypher group and re-rank only that
+    // group, since ranking is computed independently per cypher.
+    cyphers.value = cyphers.value.map((cypher) => {
+      const hasParticipant = cypher.results.some(
+        (participant) => participant.id === message.participantId,
+      );
+      if (!hasParticipant) return cypher;
+
+      const updated = cypher.results.map((participant) =>
+        participant.id === message.participantId
+          ? { ...participant, score: message.sliderValue }
+          : participant,
+      );
+      return { ...cypher, results: rankResults(updated) };
+    });
+    return;
+  }
+
+  const updated = results.value.map((participant) =>
+    participant.id === message.participantId
+      ? { ...participant, score: message.sliderValue }
+      : participant,
+  );
+  results.value = rankResults(updated);
+});
+
+function rankColor(rank: number) {
+  if (rank === 1) return "warning";
+  if (rank === 2) return "neutral";
+  if (rank === 3) return "error";
+  return "neutral";
+}
+
+const columns: TableColumn<ParticipantResult>[] = [
+  { accessorKey: "rank", header: "Rank" },
   { accessorKey: "name", header: "Participant" },
   { accessorKey: "score", header: "Score" },
 ];
@@ -63,12 +176,15 @@ const resultColumns: TableColumn<PhaseResult>[] = [
       <p class="text-muted">This phase could not be found.</p>
     </div>
 
-    <UCard v-else variant="soft">
-      <template #header>
+    <template v-else>
+      <div class="flex items-center justify-between">
         <h2 class="text-lg font-semibold">
           {{ categoryData.name }} — {{ phaseData.name }}
         </h2>
-      </template>
+        <UBadge color="primary" variant="soft">
+          {{ totalParticipants }} participants
+        </UBadge>
+      </div>
 
       <UAlert
         v-if="!isPhaseStarted"
@@ -77,23 +193,102 @@ const resultColumns: TableColumn<PhaseResult>[] = [
         variant="soft"
         title="Evaluation not started yet"
         description="Results will appear here once the organizer starts this phase."
-        class="mb-4"
       />
 
-      <div v-if="results.length === 0" class="text-center py-8">
-        <p class="text-muted">No participants registered for this phase yet.</p>
+      <div
+        v-if="totalParticipants === 0"
+        class="bg-elevated rounded-lg p-12 text-center"
+      >
+        <p class="text-muted">No one has registered for this category yet.</p>
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <UTable :data="results" :columns="resultColumns">
+      <div v-else-if="cyphers.length > 0" class="space-y-4">
+        <UCard
+          v-for="cypher in cyphers"
+          :key="cypher.id"
+          :ui="{ body: 'p-0 sm:p-0' }"
+        >
+          <template #header>
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <h3 class="text-base font-semibold">Cypher {{ cypher.index }}</h3>
+              <div class="flex items-center gap-1 flex-wrap">
+                <span class="text-xs text-muted mr-1">Judges:</span>
+                <UBadge
+                  v-for="judge in cypher.judges"
+                  :key="judge"
+                  color="neutral"
+                  variant="subtle"
+                  size="sm"
+                >
+                  {{ judge }}
+                </UBadge>
+              </div>
+            </div>
+          </template>
+
+          <div v-if="cypher.results.length === 0" class="text-center py-8">
+            <p class="text-muted">No participants in this cypher.</p>
+          </div>
+
+          <UTable v-else :data="cypher.results" :columns="columns">
+            <template #rank-cell="{ row }">
+              <UBadge
+                :color="rankColor(row.original.rank)"
+                variant="soft"
+                size="lg"
+                class="justify-center w-8"
+              >
+                {{ row.original.rank }}
+              </UBadge>
+            </template>
+
+            <template #score-cell="{ row }">
+              <UBadge
+                v-if="row.original.score !== null"
+                color="success"
+                variant="subtle"
+              >
+                {{ row.original.score }} pts
+              </UBadge>
+              <UBadge v-else color="neutral" variant="subtle">
+                Not scored
+              </UBadge>
+            </template>
+          </UTable>
+        </UCard>
+      </div>
+
+      <UCard v-else :ui="{ body: 'p-0 sm:p-0' }">
+        <template #header>
+          <h2 class="text-lg font-semibold">Results</h2>
+        </template>
+
+        <UTable :data="results" :columns="columns">
+          <template #rank-cell="{ row }">
+            <UBadge
+              :color="rankColor(row.original.rank)"
+              variant="soft"
+              size="lg"
+              class="justify-center w-8"
+            >
+              {{ row.original.rank }}
+            </UBadge>
+          </template>
+
           <template #score-cell="{ row }">
-            <span v-if="row.original.score !== null">{{
-              row.original.score
-            }}</span>
-            <span v-else class="text-muted">—</span>
+            <UBadge
+              v-if="row.original.score !== null"
+              color="success"
+              variant="subtle"
+            >
+              {{ row.original.score }} pts
+            </UBadge>
+            <UBadge v-else color="neutral" variant="subtle">
+              Not scored
+            </UBadge>
           </template>
         </UTable>
-      </div>
-    </UCard>
+      </UCard>
+    </template>
   </div>
 </template>
