@@ -4,7 +4,7 @@ import type { TableColumn } from "@nuxt/ui";
 interface ParticipantResult {
   id: number;
   name: string;
-  score: number | null;
+  hasScore: boolean;
   rank: number;
 }
 
@@ -54,7 +54,7 @@ const isPhaseStarted = computed(
 );
 
 // `cyphers`/`results` need to be mutable (not computed) so live WebSocket
-// updates can patch scores in place without waiting for a refetch.
+// updates can patch `hasScore` in place without waiting for a refetch.
 const cyphers = ref<CypherGroup[]>([]);
 const results = ref<ParticipantResult[]>([]);
 
@@ -71,21 +71,15 @@ const totalParticipants = computed(() =>
     : results.value.length,
 );
 
-// Ranks participants the same way `server/api/public/phases/[phaseId]/result.get.ts`
-// does: highest score first, unscored participants last (alphabetically
-// among themselves). Kept in sync manually since the sort also runs
-// server-side on initial load.
+// Sequence-numbers participants in their existing (original data) order.
+// No score-based sorting is performed client-side — the public API
+// already returns participants in their natural order and never exposes
+// the raw score value, only `hasScore`.
 function rankResults(participants: ParticipantResult[]) {
-  return [...participants]
-    .sort((a, b) => {
-      if (a.score === null && b.score === null) {
-        return a.name.localeCompare(b.name);
-      }
-      if (a.score === null) return 1;
-      if (b.score === null) return -1;
-      return b.score - a.score;
-    })
-    .map((participant, index) => ({ ...participant, rank: index + 1 }));
+  return participants.map((participant, index) => ({
+    ...participant,
+    rank: index + 1,
+  }));
 }
 
 const wsUrl = computed(() => {
@@ -115,8 +109,9 @@ watch(wsData, (rawMessage) => {
   }
 
   if (cyphers.value.length > 0) {
-    // Patch the score inside its owning cypher group and re-rank only that
-    // group, since ranking is computed independently per cypher.
+    // Patch `hasScore` inside its owning cypher group. The raw
+    // `sliderValue` from the WebSocket message is intentionally never
+    // stored/displayed — only whether the participant now has a score.
     cyphers.value = cyphers.value.map((cypher) => {
       const hasParticipant = cypher.results.some(
         (participant) => participant.id === message.participantId,
@@ -125,7 +120,7 @@ watch(wsData, (rawMessage) => {
 
       const updated = cypher.results.map((participant) =>
         participant.id === message.participantId
-          ? { ...participant, score: message.sliderValue }
+          ? { ...participant, hasScore: true }
           : participant,
       );
       return { ...cypher, results: rankResults(updated) };
@@ -135,23 +130,16 @@ watch(wsData, (rawMessage) => {
 
   const updated = results.value.map((participant) =>
     participant.id === message.participantId
-      ? { ...participant, score: message.sliderValue }
+      ? { ...participant, hasScore: true }
       : participant,
   );
   results.value = rankResults(updated);
 });
 
-function rankColor(rank: number) {
-  if (rank === 1) return "warning";
-  if (rank === 2) return "neutral";
-  if (rank === 3) return "error";
-  return "neutral";
-}
-
 const columns: TableColumn<ParticipantResult>[] = [
-  { accessorKey: "rank", header: "Rank" },
+  { accessorKey: "rank", header: "#" },
   { accessorKey: "name", header: "Participant" },
-  { accessorKey: "score", header: "Score" },
+  { accessorKey: "hasScore", header: "Status" },
 ];
 </script>
 
@@ -233,7 +221,7 @@ const columns: TableColumn<ParticipantResult>[] = [
           <UTable v-else :data="cypher.results" :columns="columns">
             <template #rank-cell="{ row }">
               <UBadge
-                :color="rankColor(row.original.rank)"
+                color="neutral"
                 variant="soft"
                 size="lg"
                 class="justify-center w-8"
@@ -242,17 +230,19 @@ const columns: TableColumn<ParticipantResult>[] = [
               </UBadge>
             </template>
 
-            <template #score-cell="{ row }">
+            <template #hasScore-cell="{ row }">
               <UBadge
-                v-if="row.original.score !== null"
-                color="success"
+                v-if="row.original.hasScore"
+                color="neutral"
                 variant="subtle"
-              >
-                {{ row.original.score }} pts
-              </UBadge>
-              <UBadge v-else color="neutral" variant="subtle">
-                Not scored
-              </UBadge>
+                icon="i-lucide-check"
+              />
+              <UBadge
+                v-else
+                color="primary"
+                variant="subtle"
+                icon="i-lucide-clock"
+              />
             </template>
           </UTable>
         </UCard>
@@ -266,7 +256,7 @@ const columns: TableColumn<ParticipantResult>[] = [
         <UTable :data="results" :columns="columns">
           <template #rank-cell="{ row }">
             <UBadge
-              :color="rankColor(row.original.rank)"
+              color="neutral"
               variant="soft"
               size="lg"
               class="justify-center w-8"
@@ -275,17 +265,19 @@ const columns: TableColumn<ParticipantResult>[] = [
             </UBadge>
           </template>
 
-          <template #score-cell="{ row }">
+          <template #hasScore-cell="{ row }">
             <UBadge
-              v-if="row.original.score !== null"
-              color="success"
+              v-if="row.original.hasScore"
+              color="neutral"
               variant="subtle"
-            >
-              {{ row.original.score }} pts
-            </UBadge>
-            <UBadge v-else color="neutral" variant="subtle">
-              Not scored
-            </UBadge>
+              icon="i-lucide-check"
+            />
+            <UBadge
+              v-else
+              color="primary"
+              variant="subtle"
+              icon="i-lucide-clock"
+            />
           </template>
         </UTable>
       </UCard>

@@ -15,32 +15,30 @@ import {
 interface ParticipantResult {
   id: number;
   name: string;
-  score: number | null;
+  hasScore: boolean;
   rank: number;
 }
 
-// Highest score first; participants without a score yet are pushed to the
-// bottom, ordered alphabetically among themselves.
+// No score-based sorting: participants keep their original/natural data
+// order (registration/cypher-participant order as returned by the DB
+// query). `rank` here is just a plain sequence number, not a ranking by
+// score. The raw score value is never exposed on this public route.
 function rankResults(
-  participants: { id: number; name: string; score: number | null }[],
+  participants: { id: number; name: string; hasScore: boolean }[],
 ): ParticipantResult[] {
-  return [...participants]
-    .sort((a, b) => {
-      if (a.score === null && b.score === null) {
-        return a.name.localeCompare(b.name);
-      }
-      if (a.score === null) return 1;
-      if (b.score === null) return -1;
-      return b.score - a.score;
-    })
-    .map((participant, index) => ({ ...participant, rank: index + 1 }));
+  return participants.map((participant, index) => ({
+    ...participant,
+    rank: index + 1,
+  }));
 }
 
-// Public, read-only ranked results for a phase. Mirrors the organizer-only
-// `/api/phases/[id]/result.get.ts` sort/shape and cypher breakdown, but
-// skips auth and never exposes `participantEmail` or `eventUserId` (no PII
-// on public routes). There is no public equivalent of `board.post.ts` —
-// scoring stays organizer-only.
+// Public, read-only status view for a phase: participants are listed in
+// their original data order (no score-based ranking) with only a
+// `hasScore` boolean, never the raw score value. Mirrors the organizer-only
+// `/api/phases/[id]/result.get.ts` cypher breakdown/shape, but skips auth
+// and never exposes `participantEmail`, `eventUserId`, or score values (no
+// PII/results on public routes). There is no public equivalent of
+// `board.post.ts` — scoring stays organizer-only.
 export default defineEventHandler(async (event) => {
   const phaseId = getRouterParam(event, "phaseId");
   if (!phaseId) {
@@ -97,16 +95,17 @@ export default defineEventHandler(async (event) => {
       ),
     );
 
+  // Only the participant IDs that have a recorded score are needed here —
+  // the raw score value is never selected/returned on this public route.
   const scores = await db
     .select({
       participantId: phaseBoardScores.participantId,
-      sliderValue: phaseBoardScores.sliderValue,
     })
     .from(phaseBoardScores)
     .where(eq(phaseBoardScores.phaseId, phaseId));
 
-  const scoreByParticipantId = new Map(
-    scores.map((score) => [score.participantId, score.sliderValue]),
+  const scoredParticipantIds = new Set(
+    scores.map((score) => score.participantId),
   );
 
   const participantById = new Map(
@@ -115,7 +114,7 @@ export default defineEventHandler(async (event) => {
       {
         id: registration.id,
         name: registration.participantName,
-        score: scoreByParticipantId.get(registration.id) ?? null,
+        hasScore: scoredParticipantIds.has(registration.id),
       },
     ]),
   );
@@ -123,7 +122,8 @@ export default defineEventHandler(async (event) => {
   // Cypher breakdown: every preselection phase has one row per cypher in
   // `preselection_cyphers`, each carrying its assigned judges and, via
   // `preselection_cypher_participants`, the participants shuffled into it
-  // at phase creation time. Rank independently within each cypher group.
+  // at phase creation time. Sequence-numbered in original order within
+  // each cypher group (no score-based ranking).
   const cypherRows = await db
     .select({
       cypherId: preselectionCyphers.id,
@@ -177,8 +177,9 @@ export default defineEventHandler(async (event) => {
       };
     });
 
-  // Flat fallback ranking across all registrations — used when the phase
-  // has no cypher breakdown (e.g. non-preselection phase types).
+  // Flat fallback list across all registrations, sequence-numbered in
+  // original order — used when the phase has no cypher breakdown (e.g.
+  // non-preselection phase types).
   const results = rankResults(Array.from(participantById.values()));
 
   return {
