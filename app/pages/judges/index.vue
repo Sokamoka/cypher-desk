@@ -64,39 +64,40 @@ function formatDateRange(startDate: string, endDate: string) {
           </p>
         </div>
 
-        <UCard v-else>
-          <template #header>
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold">Select an event</h2>
-              <UBadge color="primary" variant="soft">
-                {{ events.length }} events
-              </UBadge>
-            </div>
+        <UPageCard
+          v-else
+          variant="naked"
+          title="Select an event"
+          orientation="horizontal"
+          :ui="{ title: 'text-2xl' }"
+        >
+          <template #description>
+            <UBadge color="primary" variant="soft">
+              {{ events.length }} events
+            </UBadge>
           </template>
+        </UPageCard>
 
-          <div v-if="events.length === 0" class="text-center py-12">
-            <p class="text-muted">
-              You haven't created any events yet.
-            </p>
-          </div>
+        <div v-if="events.length === 0" class="text-center py-12">
+          <p class="text-muted">You haven't created any events yet.</p>
+        </div>
 
-          <div v-else class="space-y-3">
-            <UPageCard
-              v-for="eventItem in events"
-              :key="eventItem.id"
-              :title="eventItem.title"
-              :description="`${eventItem.location} • ${formatDateRange(eventItem.startDate, eventItem.endDate)}`"
-              orientation="horizontal"
-              :to="`/judges/${eventItem.id}`"
-            >
-              <template #trailing>
-                <UBadge color="neutral" variant="soft">
-                  {{ eventItem.judges.length }} judges
-                </UBadge>
-              </template>
-            </UPageCard>
-          </div>
-        </UCard>
+        <div v-else class="space-y-3">
+          <UPageCard
+            v-for="eventItem in events"
+            :key="eventItem.id"
+            :title="eventItem.title"
+            :description="`${eventItem.location} • ${formatDateRange(eventItem.startDate, eventItem.endDate)}`"
+            orientation="horizontal"
+            :to="`/judges/${eventItem.id}`"
+          >
+            <template #trailing>
+              <UBadge color="neutral" variant="soft">
+                {{ eventItem.judges.length }} judges
+              </UBadge>
+            </template>
+          </UPageCard>
+        </div>
       </div>
     </template>
   </UDashboardPanel>

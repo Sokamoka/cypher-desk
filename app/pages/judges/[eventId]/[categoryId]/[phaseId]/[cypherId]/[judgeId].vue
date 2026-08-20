@@ -85,7 +85,7 @@ watchEffect(() => {
 });
 
 const cypherLabel = computed(() =>
-  cypherData.value ? `Cypher ${cypherData.value.cypherIndex + 1}` : "Cypher",
+  cypherData.value ? `Cypher ${cypherData.value.cypherIndex}` : "Cypher",
 );
 
 const breadcrumbItems = useJudgesBreadcrumbs({
@@ -160,13 +160,13 @@ function hasUnsavedChanges(participant: ScoreParticipant) {
 
     <template #body>
       <div class="space-y-4">
-        <UButton
+        <!-- <UButton
           icon="i-lucide-arrow-left"
           variant="link"
           color="neutral"
           label="Back to judges"
           :to="`/judges/${eventId}/${categoryId}/${phaseId}/${cypherId}`"
-        />
+        /> -->
 
         <div v-if="pending" class="space-y-4">
           <USkeleton class="h-10 w-full" />
@@ -183,8 +183,15 @@ function hasUnsavedChanges(participant: ScoreParticipant) {
         </div>
 
         <template v-else>
-          <UCard>
-            <template #header>
+          <UPageCard
+            :title="judgeName"
+            :description="`${eventData?.title} — ${categoryData?.name} —
+                  ${phaseData?.name} — ${cypherLabel}`"
+            variant="naked"
+            orientation="horizontal"
+            :ui="{ title: 'text-2xl' }"
+          >
+            <!-- <template #header>
               <div>
                 <h2 class="text-lg font-semibold">{{ judgeName }}</h2>
                 <p class="text-sm text-muted">
@@ -192,8 +199,16 @@ function hasUnsavedChanges(participant: ScoreParticipant) {
                   {{ phaseData?.name }} — {{ cypherLabel }}
                 </p>
               </div>
-            </template>
-          </UCard>
+            </template> -->
+            <UButton
+              icon="i-lucide-arrow-left"
+              variant="link"
+              color="neutral"
+              label="Back to judges"
+              :to="`/judges/${eventId}/${categoryId}/${phaseId}/${cypherId}`"
+              class="w-fit lg:ms-auto"
+            />
+          </UPageCard>
 
           <UAlert
             v-if="!isPhaseStarted"
@@ -231,7 +246,9 @@ function hasUnsavedChanges(participant: ScoreParticipant) {
                 <template #description>
                   <div class="flex items-center gap-2 mt-1">
                     <UBadge
-                      v-if="participant.isSaved && !hasUnsavedChanges(participant)"
+                      v-if="
+                        participant.isSaved && !hasUnsavedChanges(participant)
+                      "
                       color="success"
                       variant="subtle"
                       icon="i-lucide-check"

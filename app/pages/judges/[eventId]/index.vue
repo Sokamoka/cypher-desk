@@ -55,14 +55,6 @@ useSeoMeta({
 
     <template #body>
       <div class="space-y-4">
-        <UButton
-          icon="i-lucide-arrow-left"
-          variant="link"
-          color="neutral"
-          label="Back to events"
-          to="/judges"
-        />
-
         <div v-if="pending" class="space-y-4">
           <USkeleton class="h-10 w-full" />
           <USkeleton class="h-64 w-full" />
@@ -77,30 +69,37 @@ useSeoMeta({
           </p>
         </div>
 
-        <UCard v-else>
-          <template #header>
-            <div>
-              <h2 class="text-lg font-semibold">{{ eventData.title }}</h2>
-              <p class="text-sm text-muted">
-                Select a category to continue
-              </p>
-            </div>
-          </template>
+        <UPageCard
+          v-else
+          variant="naked"
+          :title="eventData.title"
+          description="Select a category to continue"
+          orientation="horizontal"
+          :ui="{ title: 'text-2xl' }"
+        >
+          <UButton
+            icon="i-lucide-arrow-left"
+            variant="soft"
+            color="neutral"
+            label="Back to events"
+            to="/judges"
+            class="w-fit lg:ms-auto"
+          />
+        </UPageCard>
 
-          <div v-if="categories.length === 0" class="text-center py-12">
-            <p class="text-muted">This event has no categories yet.</p>
-          </div>
+        <div v-if="categories.length === 0" class="text-center py-12">
+          <p class="text-muted">This event has no categories yet.</p>
+        </div>
 
-          <div v-else class="space-y-3">
-            <UPageCard
-              v-for="category in categories"
-              :key="category.id"
-              :title="category.name"
-              orientation="horizontal"
-              :to="`/judges/${eventId}/${category.id}`"
-            />
-          </div>
-        </UCard>
+        <div v-else class="space-y-3">
+          <UPageCard
+            v-for="category in categories"
+            :key="category.id"
+            :title="category.name"
+            orientation="horizontal"
+            :to="`/judges/${eventId}/${category.id}`"
+          />
+        </div>
       </div>
     </template>
   </UDashboardPanel>

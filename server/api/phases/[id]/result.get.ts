@@ -1,7 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import {
   categoryPhases,
+  cypherJudgeScores,
   eventCategories,
   eventRegistrations,
   events,
@@ -11,6 +12,13 @@ import {
   registrationCategories,
 } from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
+
+// Rounds to one decimal place so multi-judge averages don't display long
+// floating point tails (e.g. 7.333333333333333).
+function averageJudgeScores(sliderValues: number[]): number {
+  const sum = sliderValues.reduce((total, value) => total + value, 0);
+  return Math.round((sum / sliderValues.length) * 10) / 10;
+}
 
 interface ParticipantResult {
   id: number;
@@ -156,13 +164,49 @@ export default defineEventHandler(async (event) => {
     registrationIdsByCypherId.set(row.cypherId, list);
   }
 
+  // Cyphers can have multiple judges, each submitting their own score via
+  // the self-service `/judges/...` flow (`cypherJudgeScores`). A
+  // participant's final score within a cypher is the average of every
+  // judge score submitted for them, not the organizer's single
+  // `phaseBoardScores` entry — that table is only used for the flat,
+  // no-cypher fallback below.
+  const cypherIds = cypherRows.map((cypher) => cypher.cypherId);
+  const judgeScoreRows =
+    cypherIds.length > 0
+      ? await db
+          .select({
+            participantId: cypherJudgeScores.participantId,
+            sliderValue: cypherJudgeScores.sliderValue,
+          })
+          .from(cypherJudgeScores)
+          .where(inArray(cypherJudgeScores.cypherId, cypherIds))
+      : [];
+
+  const judgeScoresByParticipantId = new Map<number, number[]>();
+  for (const row of judgeScoreRows) {
+    const list = judgeScoresByParticipantId.get(row.participantId) ?? [];
+    list.push(row.sliderValue);
+    judgeScoresByParticipantId.set(row.participantId, list);
+  }
+
   const cyphers = cypherRows
     .sort((a, b) => a.cypherIndex - b.cypherIndex)
     .map((cypher) => {
       const registrationIds =
         registrationIdsByCypherId.get(cypher.cypherId) ?? [];
       const participants = registrationIds
-        .map((registrationId) => participantById.get(registrationId))
+        .map((registrationId) => {
+          const base = participantById.get(registrationId);
+          if (!base) return undefined;
+
+          const judgeValues = judgeScoresByParticipantId.get(registrationId);
+          const score =
+            judgeValues && judgeValues.length > 0
+              ? averageJudgeScores(judgeValues)
+              : null;
+
+          return { ...base, score };
+        })
         .filter((participant): participant is NonNullable<typeof participant> =>
           Boolean(participant),
         );

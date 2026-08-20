@@ -78,13 +78,13 @@ useSeoMeta({
 
     <template #body>
       <div class="space-y-4">
-        <UButton
+        <!-- <UButton
           icon="i-lucide-arrow-left"
           variant="link"
           color="neutral"
           label="Back to categories"
           :to="`/judges/${eventId}`"
-        />
+        /> -->
 
         <div v-if="pending" class="space-y-4">
           <USkeleton class="h-10 w-full" />
@@ -100,37 +100,44 @@ useSeoMeta({
           </p>
         </div>
 
-        <UCard v-else>
-          <template #header>
-            <div>
-              <h2 class="text-lg font-semibold">{{ categoryData.name }}</h2>
-              <p class="text-sm text-muted">
-                Select a preselection phase to continue
-              </p>
-            </div>
-          </template>
+        <UPageCard
+          v-else
+          :title="categoryData.name"
+          description="Select a preselection phase to continue"
+          variant="naked"
+          orientation="horizontal"
+          :ui="{ title: 'text-2xl' }"
+        >
+          <UButton
+            icon="i-lucide-arrow-left"
+            variant="soft"
+            color="neutral"
+            label="Back to categories"
+            :to="`/judges/${eventId}`"
+            class="w-fit lg:ms-auto"
+          />
+        </UPageCard>
 
-          <div v-if="phases.length === 0" class="text-center py-12">
-            <p class="text-muted">
-              No preselection phases are available for judging yet.
-            </p>
-          </div>
+        <div v-if="phases.length === 0" class="text-center py-12">
+          <p class="text-muted">
+            No preselection phases are available for judging yet.
+          </p>
+        </div>
 
-          <div v-else class="space-y-3">
-            <UPageCard
-              v-for="phase in phases"
-              :key="phase.id"
-              :title="phase.name"
-              :description="
-                phase.preselection
-                  ? `${phase.preselection.numberOfCypher} cypher(s)`
-                  : undefined
-              "
-              orientation="horizontal"
-              :to="`/judges/${eventId}/${categoryId}/${phase.id}`"
-            />
-          </div>
-        </UCard>
+        <div v-else class="space-y-3">
+          <UPageCard
+            v-for="phase in phases"
+            :key="phase.id"
+            :title="phase.name"
+            :description="
+              phase.preselection
+                ? `${phase.preselection.numberOfCypher} cypher(s)`
+                : undefined
+            "
+            orientation="horizontal"
+            :to="`/judges/${eventId}/${categoryId}/${phase.id}`"
+          />
+        </div>
       </div>
     </template>
   </UDashboardPanel>

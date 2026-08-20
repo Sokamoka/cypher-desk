@@ -58,7 +58,8 @@ const breadcrumbItems = useJudgesBreadcrumbs({
 });
 
 useSeoMeta({
-  title: () => (phaseData.value ? `${phaseData.value.name} — Judges` : "Judges"),
+  title: () =>
+    phaseData.value ? `${phaseData.value.name} — Judges` : "Judges",
 });
 </script>
 
@@ -78,14 +79,6 @@ useSeoMeta({
 
     <template #body>
       <div class="space-y-4">
-        <UButton
-          icon="i-lucide-arrow-left"
-          variant="link"
-          color="neutral"
-          label="Back to phases"
-          :to="`/judges/${eventId}/${categoryId}`"
-        />
-
         <div v-if="pending" class="space-y-4">
           <USkeleton class="h-10 w-full" />
           <USkeleton class="h-64 w-full" />
@@ -110,35 +103,45 @@ useSeoMeta({
             description="Ask the organizer to start this phase before scoring."
           />
 
-          <UCard>
-            <template #header>
-              <div>
-                <h2 class="text-lg font-semibold">{{ phaseData.name }}</h2>
-                <p class="text-sm text-muted">Select a cypher to continue</p>
-              </div>
-            </template>
+          <UPageCard
+            :title="phaseData.name"
+            description="Select a cypher to continue"
+            variant="naked"
+            orientation="horizontal"
+            :ui="{ title: 'text-2xl' }"
+          >
+            <UButton
+              icon="i-lucide-arrow-left"
+              variant="soft"
+              color="neutral"
+              label="Back to phases"
+              :to="`/judges/${eventId}/${categoryId}`"
+              class="w-fit lg:ms-auto"
+            />
+          </UPageCard>
 
-            <div v-if="cyphers.length === 0" class="text-center py-12">
-              <p class="text-muted">No cyphers are available for this phase yet.</p>
-            </div>
+          <div v-if="cyphers.length === 0" class="text-center py-12">
+            <p class="text-muted">
+              No cyphers are available for this phase yet.
+            </p>
+          </div>
 
-            <div v-else class="space-y-3">
-              <UPageCard
-                v-for="cypher in cyphers"
-                :key="cypher.id"
-                :title="`Cypher ${cypher.cypherIndex + 1}`"
-                :description="`${cypher.participantCount} participant(s)`"
-                orientation="horizontal"
-                :to="`/judges/${eventId}/${categoryId}/${phaseId}/${cypher.id}`"
-              >
-                <template #trailing>
-                  <UBadge color="neutral" variant="soft">
-                    {{ cypher.judges.length }} judges
-                  </UBadge>
-                </template>
-              </UPageCard>
-            </div>
-          </UCard>
+          <div v-else class="space-y-3">
+            <UPageCard
+              v-for="cypher in cyphers"
+              :key="cypher.id"
+              :title="`Cypher ${cypher.cypherIndex}`"
+              :description="`${cypher.participantCount} participant(s)`"
+              orientation="horizontal"
+              :to="`/judges/${eventId}/${categoryId}/${phaseId}/${cypher.id}`"
+            >
+              <template #trailing>
+                <UBadge color="neutral" variant="soft">
+                  {{ cypher.judges.length }} judges
+                </UBadge>
+              </template>
+            </UPageCard>
+          </div>
         </template>
       </div>
     </template>

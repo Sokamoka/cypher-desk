@@ -11,7 +11,16 @@ import {
   preselectionCyphers,
 } from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
+import { broadcastToPhase } from "~~/server/utils/ws-rooms";
 import { SaveCypherJudgeScoreSchema } from "~~/utils/schemas";
+
+// Rounds to one decimal place so multi-judge averages don't display long
+// floating point tails (e.g. 7.333333333333333). Kept in sync with the
+// same helper in `server/api/phases/[id]/result.get.ts`.
+function averageJudgeScores(sliderValues: number[]): number {
+  const sum = sliderValues.reduce((total, value) => total + value, 0);
+  return Math.round((sum / sliderValues.length) * 10) / 10;
+}
 
 export default defineEventHandler(async (event) => {
   const user = await requireSessionUser(event);
@@ -37,6 +46,9 @@ export default defineEventHandler(async (event) => {
       judgesRaw: sql<string>`${preselectionCyphers.judges}`.as(
         "cypher_judges_raw",
       ),
+      phaseId: categoryPhases.id,
+      categoryId: eventCategories.id,
+      eventId: events.id,
       eventUserId: events.userId,
     })
     .from(preselectionCyphers)
@@ -126,6 +138,41 @@ export default defineEventHandler(async (event) => {
           updatedAt: sql`CURRENT_TIMESTAMP`,
         },
       });
+
+    try {
+      // A participant's live-displayed score is the average across every
+      // judge who has scored them in this cypher, not just this judge's
+      // own slider value — broadcast the recomputed average so
+      // `result.vue` shows the same figure it would get on a refetch.
+      const participantScores = await db
+        .select({ sliderValue: cypherJudgeScores.sliderValue })
+        .from(cypherJudgeScores)
+        .where(
+          and(
+            eq(cypherJudgeScores.cypherId, cypherId),
+            eq(cypherJudgeScores.participantId, validatedData.participantId),
+          ),
+        );
+
+      const averageScore = averageJudgeScores(
+        participantScores.map((score) => score.sliderValue),
+      );
+
+      broadcastToPhase(cypherContext.phaseId, {
+        type: "score-updated",
+        eventId: cypherContext.eventId,
+        categoryId: cypherContext.categoryId,
+        phaseId: cypherContext.phaseId,
+        participantId: validatedData.participantId,
+        sliderValue: averageScore,
+      });
+    } catch (broadcastError) {
+      // A broadcast failure must never fail the save request itself.
+      console.error(
+        "Failed to broadcast judge score update:",
+        broadcastError,
+      );
+    }
 
     return {
       success: true,

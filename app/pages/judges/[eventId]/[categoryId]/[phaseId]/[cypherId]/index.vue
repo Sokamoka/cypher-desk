@@ -50,7 +50,7 @@ const participants = computed(() => data.value?.participants ?? []);
 const isPhaseStarted = computed(() => data.value?.isPhaseStarted ?? false);
 
 const cypherLabel = computed(() =>
-  cypherData.value ? `Cypher ${cypherData.value.cypherIndex + 1}` : "Cypher",
+  cypherData.value ? `Cypher ${cypherData.value.cypherIndex}` : "Cypher",
 );
 
 const breadcrumbItems = useJudgesBreadcrumbs({
@@ -90,14 +90,6 @@ function judgeUrl(judgeName: string) {
 
     <template #body>
       <div class="space-y-4">
-        <UButton
-          icon="i-lucide-arrow-left"
-          variant="link"
-          color="neutral"
-          label="Back to cyphers"
-          :to="`/judges/${eventId}/${categoryId}/${phaseId}`"
-        />
-
         <div v-if="pending" class="space-y-4">
           <USkeleton class="h-10 w-full" />
           <USkeleton class="h-64 w-full" />
@@ -122,32 +114,42 @@ function judgeUrl(judgeName: string) {
             description="Ask the organizer to start this phase before scoring."
           />
 
-          <UCard>
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold">{{ cypherLabel }}</h2>
-                <UBadge color="primary" variant="soft">
-                  {{ participants.length }} participants
-                </UBadge>
-              </div>
-            </template>
+          <UPageCard
+            :title="cypherLabel"
+            description="Who is judging?"
+            variant="naked"
+            orientation="horizontal"
+            :ui="{ title: 'text-2xl' }"
+          >
+            <!-- <template #description>
+              <UBadge color="primary" variant="soft">
+                {{ participants.length }} participants
+              </UBadge>
+            </template> -->
 
-            <p class="text-sm text-muted mb-3">Who is judging?</p>
+            <UButton
+              icon="i-lucide-arrow-left"
+              variant="soft"
+              color="neutral"
+              label="Back to cyphers"
+              :to="`/judges/${eventId}/${categoryId}/${phaseId}`"
+              class="w-fit lg:ms-auto"
+            />
+          </UPageCard>
 
-            <div v-if="cypherData.judges.length === 0" class="text-center py-12">
-              <p class="text-muted">No judges are assigned to this cypher.</p>
-            </div>
+          <div v-if="cypherData.judges.length === 0" class="text-center py-12">
+            <p class="text-muted">No judges are assigned to this cypher.</p>
+          </div>
 
-            <div v-else class="space-y-3">
-              <UPageCard
-                v-for="judgeName in cypherData.judges"
-                :key="judgeName"
-                :title="judgeName"
-                orientation="horizontal"
-                :to="judgeUrl(judgeName)"
-              />
-            </div>
-          </UCard>
+          <div v-else class="space-y-3">
+            <UPageCard
+              v-for="judgeName in cypherData.judges"
+              :key="judgeName"
+              :title="judgeName"
+              orientation="horizontal"
+              :to="judgeUrl(judgeName)"
+            />
+          </div>
         </template>
       </div>
     </template>

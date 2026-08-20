@@ -98,10 +98,10 @@ useSeoMeta({
 async function startPhase() {
   isStartingPhase.value = true;
   try {
-    const response = await $fetch<{ success: boolean; isPhaseStarted: boolean }>(
-      `/api/phases/${phaseId.value}/board/start`,
-      { method: "POST" },
-    );
+    const response = await $fetch<{
+      success: boolean;
+      isPhaseStarted: boolean;
+    }>(`/api/phases/${phaseId.value}/board/start`, { method: "POST" });
     isPhaseStarted.value = response.isPhaseStarted;
   } catch (fetchError) {
     console.error("Failed to start phase:", fetchError);
@@ -130,7 +130,9 @@ async function saveScore(participant: BoardParticipant) {
 }
 
 function hasUnsavedChanges(participant: BoardParticipant) {
-  return participant.isSaved && participant.sliderValue !== participant.savedValue;
+  return (
+    participant.isSaved && participant.sliderValue !== participant.savedValue
+  );
 }
 </script>
 
@@ -167,7 +169,9 @@ function hasUnsavedChanges(participant: BoardParticipant) {
         </div>
 
         <div
-          v-else-if="error || boardError || !eventData || !categoryData || !phaseData"
+          v-else-if="
+            error || boardError || !eventData || !categoryData || !phaseData
+          "
           class="bg-error/10 border border-error/30 rounded-lg p-4"
         >
           <p class="text-error">
@@ -225,7 +229,9 @@ function hasUnsavedChanges(participant: BoardParticipant) {
                 <template #description>
                   <div class="flex items-center gap-2 mt-1">
                     <UBadge
-                      v-if="participant.isSaved && !hasUnsavedChanges(participant)"
+                      v-if="
+                        participant.isSaved && !hasUnsavedChanges(participant)
+                      "
                       color="success"
                       variant="subtle"
                       icon="i-lucide-check"
@@ -244,7 +250,7 @@ function hasUnsavedChanges(participant: BoardParticipant) {
                 </template>
 
                 <div class="flex items-center gap-3 min-w-64">
-                  <USlider
+                  <UInputNumber
                     v-model="participant.sliderValue"
                     :min="0"
                     :max="10"
