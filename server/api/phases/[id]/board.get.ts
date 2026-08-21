@@ -1,12 +1,15 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import {
   categoryPhases,
+  cypherJudgeScores,
   eventCategories,
   events,
   eventRegistrations,
   phaseBoards,
   phaseBoardScores,
+  preselectionCypherParticipants,
+  preselectionCyphers,
   registrationCategories,
 } from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
@@ -95,9 +98,112 @@ export default defineEventHandler(async (event) => {
     };
   });
 
+  const participantNameById = new Map(
+    registrations.map((registration) => [
+      registration.id,
+      registration.participantName,
+    ]),
+  );
+
+  // Cypher breakdown: mirrors the query pattern in
+  // `server/api/phases/[id]/result.get.ts`, but here we surface every
+  // assigned judge's *own* score per participant (not the averaged one)
+  // so the organizer can review and edit each judge's individual entry.
+  const cypherRows = await db
+    .select({
+      cypherId: preselectionCyphers.id,
+      cypherIndex: preselectionCyphers.cypherIndex,
+      judges: preselectionCyphers.judges,
+    })
+    .from(preselectionCyphers)
+    .where(eq(preselectionCyphers.phaseId, phaseId));
+
+  const cypherParticipantRows =
+    cypherRows.length > 0
+      ? await db
+          .select({
+            cypherId: preselectionCypherParticipants.cypherId,
+            registrationId: preselectionCypherParticipants.registrationId,
+          })
+          .from(preselectionCypherParticipants)
+          .innerJoin(
+            preselectionCyphers,
+            eq(
+              preselectionCypherParticipants.cypherId,
+              preselectionCyphers.id,
+            ),
+          )
+          .where(eq(preselectionCyphers.phaseId, phaseId))
+      : [];
+
+  const registrationIdsByCypherId = new Map<string, number[]>();
+  for (const row of cypherParticipantRows) {
+    const list = registrationIdsByCypherId.get(row.cypherId) ?? [];
+    list.push(row.registrationId);
+    registrationIdsByCypherId.set(row.cypherId, list);
+  }
+
+  const cypherIds = cypherRows.map((cypher) => cypher.cypherId);
+  const judgeScoreRows =
+    cypherIds.length > 0
+      ? await db
+          .select({
+            cypherId: cypherJudgeScores.cypherId,
+            judgeName: cypherJudgeScores.judgeName,
+            participantId: cypherJudgeScores.participantId,
+            sliderValue: cypherJudgeScores.sliderValue,
+          })
+          .from(cypherJudgeScores)
+          .where(inArray(cypherJudgeScores.cypherId, cypherIds))
+      : [];
+
+  const judgeScoreByKey = new Map<string, number>();
+  for (const row of judgeScoreRows) {
+    judgeScoreByKey.set(
+      `${row.cypherId}:${row.participantId}:${row.judgeName}`,
+      row.sliderValue,
+    );
+  }
+
+  const cyphers = cypherRows
+    .sort((a, b) => a.cypherIndex - b.cypherIndex)
+    .map((cypher) => {
+      const registrationIds =
+        registrationIdsByCypherId.get(cypher.cypherId) ?? [];
+
+      const cypherParticipants = registrationIds
+        .map((registrationId) => {
+          const name = participantNameById.get(registrationId);
+          if (!name) return undefined;
+
+          const scores = Object.fromEntries(
+            cypher.judges.map((judgeName) => [
+              judgeName,
+              judgeScoreByKey.get(
+                `${cypher.cypherId}:${registrationId}:${judgeName}`,
+              ) ?? null,
+            ]),
+          );
+
+          return { id: registrationId, name, scores };
+        })
+        .filter(
+          (participant): participant is NonNullable<typeof participant> =>
+            Boolean(participant),
+        );
+
+      return {
+        id: cypher.cypherId,
+        index: cypher.cypherIndex,
+        judges: cypher.judges,
+        participants: cypherParticipants,
+      };
+    });
+
   return {
     success: true,
     isPhaseStarted: board?.isStarted ?? false,
     participants,
+    cyphers,
   };
 });

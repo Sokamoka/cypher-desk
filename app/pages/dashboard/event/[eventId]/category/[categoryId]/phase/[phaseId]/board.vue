@@ -45,6 +45,32 @@ interface BoardParticipant {
   isSaved: boolean;
 }
 
+interface CypherJudgeScores {
+  [judgeName: string]: number | null;
+}
+
+interface BoardCypherParticipant {
+  id: number;
+  name: string;
+  scores: CypherJudgeScores;
+}
+
+interface BoardCypher {
+  id: string;
+  index: number;
+  judges: string[];
+  participants: BoardCypherParticipant[];
+}
+
+// Local editable state for a single judge's score on a single participant
+// within a cypher — keyed by `${participantId}:${judgeName}` so each
+// judge's slider is tracked independently.
+interface JudgeScoreState {
+  sliderValue: number;
+  savedValue: number | null;
+  isSaved: boolean;
+}
+
 const { data, pending, error } = await useFetch<{
   success: boolean;
   event: DashboardEvent;
@@ -60,6 +86,7 @@ const {
   success: boolean;
   isPhaseStarted: boolean;
   participants: BoardParticipant[];
+  cyphers: BoardCypher[];
 }>(() => `/api/phases/${phaseId.value}/board`);
 
 const eventData = computed(() => data.value?.event ?? null);
@@ -77,16 +104,43 @@ const breadcrumbItems = useDashboardEventBreadcrumbs({
 
 const isPhaseStarted = ref(false);
 const participants = ref<BoardParticipant[]>([]);
+const cyphers = ref<BoardCypher[]>([]);
+
+// `${participantId}:${judgeName}` -> editable slider state for that pair.
+const judgeScores = reactive(new Map<string, JudgeScoreState>());
+
+function judgeScoreKey(participantId: number, judgeName: string) {
+  return `${participantId}:${judgeName}`;
+}
+
+function seedJudgeScores(cypherList: BoardCypher[]) {
+  judgeScores.clear();
+  for (const cypher of cypherList) {
+    for (const participant of cypher.participants) {
+      for (const judgeName of cypher.judges) {
+        const savedValue = participant.scores[judgeName] ?? null;
+        judgeScores.set(judgeScoreKey(participant.id, judgeName), {
+          sliderValue: savedValue ?? 5,
+          savedValue,
+          isSaved: savedValue !== null,
+        });
+      }
+    }
+  }
+}
 
 watchEffect(() => {
   if (boardData.value) {
     isPhaseStarted.value = boardData.value.isPhaseStarted;
     participants.value = boardData.value.participants;
+    cyphers.value = boardData.value.cyphers;
+    seedJudgeScores(boardData.value.cyphers);
   }
 });
 
 const isStartingPhase = ref(false);
 const savingParticipantId = ref<number | null>(null);
+const savingJudgeScoreKey = ref<string | null>(null);
 
 useSeoMeta({
   title: () =>
@@ -133,6 +187,60 @@ function hasUnsavedChanges(participant: BoardParticipant) {
   return (
     participant.isSaved && participant.sliderValue !== participant.savedValue
   );
+}
+
+const totalCypherParticipants = computed(() =>
+  cyphers.value.reduce((sum, cypher) => sum + cypher.participants.length, 0),
+);
+
+function judgeState(participantId: number, judgeName: string) {
+  const key = judgeScoreKey(participantId, judgeName);
+  const state = judgeScores.get(key);
+  if (state) return state;
+
+  // Should always be seeded by `seedJudgeScores`, but fall back defensively
+  // so the template never dereferences `undefined`.
+  const fallback: JudgeScoreState = {
+    sliderValue: 5,
+    savedValue: null,
+    isSaved: false,
+  };
+  judgeScores.set(key, fallback);
+  return fallback;
+}
+
+function hasUnsavedJudgeChanges(participantId: number, judgeName: string) {
+  const state = judgeState(participantId, judgeName);
+  return state.isSaved && state.sliderValue !== state.savedValue;
+}
+
+async function saveJudgeScore(
+  cypher: BoardCypher,
+  participant: BoardCypherParticipant,
+  judgeName: string,
+) {
+  const key = judgeScoreKey(participant.id, judgeName);
+  const state = judgeState(participant.id, judgeName);
+
+  savingJudgeScoreKey.value = key;
+  try {
+    await $fetch(
+      `/api/cyphers/${cypher.id}/judges/${encodeURIComponent(judgeName)}/scores`,
+      {
+        method: "POST",
+        body: {
+          participantId: participant.id,
+          sliderValue: state.sliderValue,
+        },
+      },
+    );
+    state.savedValue = state.sliderValue;
+    state.isSaved = true;
+  } catch (fetchError) {
+    console.error("Failed to save judge score:", fetchError);
+  } finally {
+    savingJudgeScoreKey.value = null;
+  }
 }
 </script>
 
@@ -202,7 +310,117 @@ function hasUnsavedChanges(participant: BoardParticipant) {
             description="Start the phase to enable slider adjustments and saving scores."
           />
 
-          <UCard>
+          <div v-if="cyphers.length > 0" class="space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold">Participants by Cypher</h2>
+              <UBadge color="primary" variant="soft">
+                {{ totalCypherParticipants }} participants
+              </UBadge>
+            </div>
+
+            <UCard
+              v-for="cypher in cyphers"
+              :key="cypher.id"
+              :ui="{ body: 'p-0 sm:p-0' }"
+            >
+              <template #header>
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                  <h3 class="text-base font-semibold">
+                    Cypher {{ cypher.index }}
+                  </h3>
+                  <div class="flex items-center gap-1 flex-wrap">
+                    <span class="text-xs text-muted mr-1">Judges:</span>
+                    <UBadge
+                      v-for="judge in cypher.judges"
+                      :key="judge"
+                      color="neutral"
+                      variant="subtle"
+                      size="sm"
+                    >
+                      {{ judge }}
+                    </UBadge>
+                  </div>
+                </div>
+              </template>
+
+              <div
+                v-if="cypher.participants.length === 0"
+                class="text-center py-8"
+              >
+                <p class="text-muted">No participants in this cypher.</p>
+              </div>
+
+              <div v-else class="divide-y divide-default">
+                <div
+                  v-for="participant in cypher.participants"
+                  :key="participant.id"
+                  class="p-4 space-y-3"
+                >
+                  <p class="font-medium">{{ participant.name }}</p>
+
+                  <div class="flex flex-col gap-3">
+                    <div
+                      v-for="judge in cypher.judges"
+                      :key="judge"
+                      class="flex items-center gap-3 min-w-64 flex-wrap"
+                    >
+                      <span class="text-sm text-muted w-28 shrink-0">{{
+                        judge
+                      }}</span>
+                      <UInputNumber
+                        v-model="judgeState(participant.id, judge).sliderValue"
+                        :min="0"
+                        :max="10"
+                        :step="1"
+                        :disabled="!isPhaseStarted"
+                        :tooltip="{
+                          content: { side: 'top' },
+                          ui: { content: 'text-xl' },
+                        }"
+                        class="flex-1"
+                      />
+                      <UButton
+                        label="Save"
+                        icon="i-lucide-save"
+                        variant="soft"
+                        color="success"
+                        size="sm"
+                        :disabled="!isPhaseStarted"
+                        :loading="
+                          savingJudgeScoreKey ===
+                          `${participant.id}:${judge}`
+                        "
+                        @click="saveJudgeScore(cypher, participant, judge)"
+                      />
+                      <UBadge
+                        v-if="
+                          judgeState(participant.id, judge).isSaved &&
+                          !hasUnsavedJudgeChanges(participant.id, judge)
+                        "
+                        color="success"
+                        variant="subtle"
+                        icon="i-lucide-check"
+                      >
+                        Saved
+                      </UBadge>
+                      <UBadge
+                        v-else-if="
+                          hasUnsavedJudgeChanges(participant.id, judge)
+                        "
+                        color="warning"
+                        variant="subtle"
+                        icon="i-lucide-circle-alert"
+                      >
+                        Unsaved changes
+                      </UBadge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </UCard>
+          </div>
+
+          <UCard v-else>
             <template #header>
               <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold">Participants</h2>
