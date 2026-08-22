@@ -4,13 +4,13 @@ import {
   categoryPhases,
   cypherJudgeScores,
   eventCategories,
-  eventRegistrations,
   events,
   phaseBoards,
-  preselectionCypherParticipants,
   preselectionCyphers,
+  preselectionPhases,
 } from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
+import { getCypherGroupsState } from "~~/server/utils/cypher-groups";
 
 export default defineEventHandler(async (event) => {
   const user = await requireSessionUser(event);
@@ -44,6 +44,7 @@ export default defineEventHandler(async (event) => {
       eventId: events.id,
       eventTitle: events.title,
       eventUserId: events.userId,
+      groupSize: preselectionPhases.groupSize,
     })
     .from(preselectionCyphers)
     .innerJoin(
@@ -55,6 +56,10 @@ export default defineEventHandler(async (event) => {
       eq(categoryPhases.categoryId, eventCategories.id),
     )
     .innerJoin(events, eq(eventCategories.eventId, events.id))
+    .innerJoin(
+      preselectionPhases,
+      eq(preselectionPhases.phaseId, categoryPhases.id),
+    )
     .where(eq(preselectionCyphers.id, cypherId))
     .then((rows) => rows[0]);
 
@@ -85,19 +90,9 @@ export default defineEventHandler(async (event) => {
     .where(eq(phaseBoards.phaseId, cypherContext.phaseId))
     .then((rows) => rows[0]);
 
-  const cypherParticipants = await db
-    .select({
-      id: eventRegistrations.id,
-      participantName: eventRegistrations.participantName,
-    })
-    .from(preselectionCypherParticipants)
-    .innerJoin(
-      eventRegistrations,
-      eq(preselectionCypherParticipants.registrationId, eventRegistrations.id),
-    )
-    .where(eq(preselectionCypherParticipants.cypherId, cypherId));
-
-  const scores = await db
+  // Own-judge scores (used to prefill each participant's slider/saved
+  // state), separate from the cross-judge completion data below.
+  const ownScores = await db
     .select({
       participantId: cypherJudgeScores.participantId,
       sliderValue: cypherJudgeScores.sliderValue,
@@ -111,19 +106,36 @@ export default defineEventHandler(async (event) => {
     );
 
   const scoreByParticipantId = new Map(
-    scores.map((score) => [score.participantId, score.sliderValue]),
+    ownScores.map((score) => [score.participantId, score.sliderValue]),
   );
 
-  const participants = cypherParticipants.map((participant) => {
-    const savedValue = scoreByParticipantId.get(participant.id) ?? null;
-    return {
-      id: participant.id,
-      name: participant.participantName,
-      sliderValue: savedValue ?? 5,
-      savedValue,
-      isSaved: savedValue !== null,
-    };
-  });
+  // Derived, cross-judge grouping/progression state: which group each
+  // participant belongs to, whether every assigned judge has finished the
+  // current group, and which judges (if any) the current group is still
+  // waiting on.
+  const { groups, groupsCompletion, currentStepIndex, totalSteps } =
+    await getCypherGroupsState(
+      db,
+      cypherId,
+      assignedJudges,
+      cypherContext.groupSize,
+    );
+
+  const participants = groups.flatMap((group, groupIndex) =>
+    group.map((participant) => {
+      const savedValue = scoreByParticipantId.get(participant.id) ?? null;
+      return {
+        id: participant.id,
+        name: participant.participantName,
+        sliderValue: savedValue ?? 5,
+        savedValue,
+        isSaved: savedValue !== null,
+        groupIndex,
+      };
+    }),
+  );
+
+  const currentGroupCompletion = groupsCompletion[currentStepIndex];
 
   return {
     success: true,
@@ -145,6 +157,10 @@ export default defineEventHandler(async (event) => {
     },
     judgeName,
     isPhaseStarted: board?.isStarted ?? false,
+    groupSize: cypherContext.groupSize,
+    totalSteps,
+    currentStepIndex,
+    pendingJudges: currentGroupCompletion?.pendingJudges ?? [],
     participants,
   };
 });

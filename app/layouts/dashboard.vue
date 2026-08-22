@@ -20,7 +20,7 @@ const links = [
     },
     {
       label: "Judicial system",
-      icon: "i-lucide-calendar",
+      icon: "i-lucide-gavel",
       to: "/judges",
       onSelect: () => {
         open.value = false;

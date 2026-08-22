@@ -9,8 +9,10 @@ import {
   events,
   preselectionCypherParticipants,
   preselectionCyphers,
+  preselectionPhases,
 } from "~~/server/database/schema";
 import { requireSessionUser } from "~~/server/utils/auth";
+import { getCypherGroupsState } from "~~/server/utils/cypher-groups";
 import { broadcastToPhase } from "~~/server/utils/ws-rooms";
 import { SaveCypherJudgeScoreSchema } from "~~/utils/schemas";
 
@@ -50,6 +52,7 @@ export default defineEventHandler(async (event) => {
       categoryId: eventCategories.id,
       eventId: events.id,
       eventUserId: events.userId,
+      groupSize: preselectionPhases.groupSize,
     })
     .from(preselectionCyphers)
     .innerJoin(
@@ -61,6 +64,10 @@ export default defineEventHandler(async (event) => {
       eq(categoryPhases.categoryId, eventCategories.id),
     )
     .innerJoin(events, eq(eventCategories.eventId, events.id))
+    .innerJoin(
+      preselectionPhases,
+      eq(preselectionPhases.phaseId, categoryPhases.id),
+    )
     .where(eq(preselectionCyphers.id, cypherId))
     .then((rows) => rows[0]);
 
@@ -170,6 +177,34 @@ export default defineEventHandler(async (event) => {
       // A broadcast failure must never fail the save request itself.
       console.error(
         "Failed to broadcast judge score update:",
+        broadcastError,
+      );
+    }
+
+    try {
+      // Recompute the cypher's group-progression state now that this
+      // judge's score has been saved, and broadcast it so every judge
+      // device assigned to this cypher advances to the next group in
+      // lockstep the moment the last outstanding judge finishes a group —
+      // no manual refresh/next-step action required on any device.
+      const { currentStepIndex, totalSteps } = await getCypherGroupsState(
+        db,
+        cypherId,
+        assignedJudges,
+        cypherContext.groupSize,
+      );
+
+      broadcastToPhase(cypherContext.phaseId, {
+        type: "cypher-step-updated",
+        phaseId: cypherContext.phaseId,
+        cypherId,
+        currentStepIndex,
+        totalSteps,
+      });
+    } catch (broadcastError) {
+      // Same as above: a broadcast failure must never fail the save.
+      console.error(
+        "Failed to broadcast cypher step update:",
         broadcastError,
       );
     }

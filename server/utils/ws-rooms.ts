@@ -40,6 +40,21 @@ export interface PhaseScoreUpdatedMessage {
   sliderValue: number;
 }
 
+// Broadcast after a judge score save recomputes group completion for a
+// cypher, so every judge device assigned to that cypher can advance to the
+// next group's participants in lockstep, without a manual refresh.
+export interface CypherStepUpdatedMessage {
+  type: "cypher-step-updated";
+  phaseId: string;
+  cypherId: string;
+  currentStepIndex: number;
+  totalSteps: number;
+}
+
+export type PhaseBroadcastMessage =
+  | PhaseScoreUpdatedMessage
+  | CypherStepUpdatedMessage;
+
 /**
  * Broadcasts a message to every peer currently subscribed to `phaseId`.
  * Failures sending to an individual peer are swallowed so one dead
@@ -47,7 +62,7 @@ export interface PhaseScoreUpdatedMessage {
  */
 export function broadcastToPhase(
   phaseId: string,
-  payload: PhaseScoreUpdatedMessage,
+  payload: PhaseBroadcastMessage,
 ) {
   const room = phaseRooms.get(phaseId);
   if (!room || room.size === 0) return;
